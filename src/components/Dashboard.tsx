@@ -8,7 +8,13 @@ import { RefreshCw, Filter, TestTube } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 export function Dashboard() {
-  const [testResults, setTestResults] = useState<any>(null)
+  const [testResults, setTestResults] = useState<{
+    success: boolean
+    error?: string
+    details?: string
+    tokenTest?: { user?: { name?: string } }
+    summary?: { accountsAccessible: number; totalAccounts: number; campaignsFound: number }
+  } | null>(null)
   const [testLoading, setTestLoading] = useState(false)
   
   const {

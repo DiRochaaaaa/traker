@@ -4,28 +4,7 @@ const FB_TOKEN = process.env.FB_TOKEN
 const FB_AD_ACCOUNT_1 = process.env.FB_AD_ACCOUNT_1
 const FB_AD_ACCOUNT_2 = process.env.FB_AD_ACCOUNT_2
 
-interface FacebookCampaign {
-  id: string
-  name: string
-  status: string
-  daily_budget?: string
-  insights?: {
-    data: Array<{
-      spend: string
-      cpm: string
-      actions?: Array<{
-        action_type: string
-        value: string
-      }>
-      cost_per_action_type?: Array<{
-        action_type: string
-        value: string
-      }>
-      impressions: string
-      clicks: string
-    }>
-  }
-}
+
 
 function getDatePreset(period: string) {
   switch (period) {
@@ -162,7 +141,7 @@ export async function GET(request: NextRequest) {
           
         } else {
           // Método 1 funcionou - processar insights diretos
-          const campaignIds = (insightsData.data || []).map((insight: any) => insight.campaign_id).filter(Boolean)
+          const campaignIds = (insightsData.data || []).map((insight: { campaign_id: string }) => insight.campaign_id).filter(Boolean)
           
           if (campaignIds.length === 0) {
             console.log(`⚠️ No campaigns with data found for account ${accountId}`)
@@ -182,7 +161,7 @@ export async function GET(request: NextRequest) {
               const campaignData = await campaignResponse.json()
 
               if (campaignResponse.ok) {
-                const campaignInsights = insightsData.data.filter((insight: any) => insight.campaign_id === campaignId)
+                const campaignInsights = insightsData.data.filter((insight: { campaign_id: string }) => insight.campaign_id === campaignId)
 
                 allResults.push({
                   id: campaignData.id,

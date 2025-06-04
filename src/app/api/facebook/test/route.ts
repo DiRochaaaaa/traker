@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
 const FB_TOKEN = process.env.FB_TOKEN
 const FB_AD_ACCOUNT_1 = process.env.FB_AD_ACCOUNT_1
 const FB_AD_ACCOUNT_2 = process.env.FB_AD_ACCOUNT_2
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   console.log('🧪 Testing Facebook API connectivity...')
   
   if (!FB_TOKEN) {
