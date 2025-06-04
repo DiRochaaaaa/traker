@@ -1,10 +1,9 @@
 'use client'
 
-import { useFacebookData, type PlataformaMetrics } from '@/hooks/useFacebookData'
+import { useFacebookData } from '@/hooks/useFacebookData'
 import { MetricsCard } from './MetricsCard'
 import { CampaignsTable } from './CampaignsTable'
 import { DateSelector } from './DateSelector'
-import { DebugVendas } from './DebugVendas'
 import { RefreshCw, Filter, TestTube, ShoppingBag } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'

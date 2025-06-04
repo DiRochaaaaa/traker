@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Calendar, Filter, Search, TrendingUp, ShoppingBag, DollarSign, Eye, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
@@ -34,7 +34,7 @@ export function VendasPage() {
   const [filterTipo, setFilterTipo] = useState<string>('all')
   const [stats, setStats] = useState<VendasStats>({ total: 0, faturamento: 0, comissao: 0, vendas_main: 0 })
 
-  const fetchVendas = async (selectedPeriod: string) => {
+  const fetchVendas = useCallback(async (selectedPeriod: string) => {
     setLoading(true)
     try {
       const response = await fetch(`/api/vendas?period=${selectedPeriod}`)
@@ -49,7 +49,7 @@ export function VendasPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const calculateStats = (vendasData: Venda[]) => {
     const stats = vendasData.reduce((acc, venda) => {
@@ -72,7 +72,7 @@ export function VendasPage() {
 
   useEffect(() => {
     fetchVendas(period)
-  }, [period])
+  }, [period, fetchVendas])
 
   // Filtrar vendas baseado na busca e tipo
   const vendasFiltradas = vendas.filter(venda => {

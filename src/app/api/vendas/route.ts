@@ -130,8 +130,8 @@ export async function GET(request: NextRequest) {
       console.log('📊 [VENDAS API] Detalhes das vendas:')
       
       // Agrupar por data para mostrar distribuição
-      const vendasPorData = data.reduce((acc: Record<string, number>, venda: any) => {
-        const data = new Date(venda.created_at).toISOString().split('T')[0]
+      const vendasPorData = data.reduce((acc: Record<string, number>, venda: Record<string, unknown>) => {
+        const data = new Date(venda.created_at as string).toISOString().split('T')[0]
         acc[data] = (acc[data] || 0) + 1
         return acc
       }, {})
@@ -139,13 +139,13 @@ export async function GET(request: NextRequest) {
       console.log('📅 [VENDAS API] Vendas por data:', vendasPorData)
       
       // Agrupar por campaign_id
-      const vendasPorCampanha = data.reduce((acc: Record<string, { count: number, faturamento: number }>, venda: any) => {
-        const campaignId = venda.campaign_id || 'sem_campaign_id'
+      const vendasPorCampanha = data.reduce((acc: Record<string, { count: number, faturamento: number }>, venda: Record<string, unknown>) => {
+        const campaignId = (venda.campaign_id as string) || 'sem_campaign_id'
         if (!acc[campaignId]) acc[campaignId] = { count: 0, faturamento: 0 }
         acc[campaignId].count += 1
         
         // Parse do faturamento
-        const faturamento = parseFloat(venda.faturamento_bruto || '0')
+        const faturamento = parseFloat((venda.faturamento_bruto as string) || '0')
         acc[campaignId].faturamento += faturamento
         
         return acc
@@ -154,8 +154,8 @@ export async function GET(request: NextRequest) {
       console.log('💰 [VENDAS API] Vendas por campaign_id:', vendasPorCampanha)
       
       // Mostrar tipos de vendas
-      const vendasPorTipo = data.reduce((acc: Record<string, number>, venda: any) => {
-        const tipo = venda.tipo || 'main'
+      const vendasPorTipo = data.reduce((acc: Record<string, number>, venda: Record<string, unknown>) => {
+        const tipo = (venda.tipo as string) || 'main'
         acc[tipo] = (acc[tipo] || 0) + 1
         return acc
       }, {})
@@ -163,8 +163,8 @@ export async function GET(request: NextRequest) {
       console.log('🏷️ [VENDAS API] Vendas por tipo:', vendasPorTipo)
       
       // Calcular faturamento total
-      const faturamentoTotal = data.reduce((total: number, venda: any) => {
-        const valor = parseFloat(venda.faturamento_bruto || '0')
+      const faturamentoTotal = data.reduce((total: number, venda: Record<string, unknown>) => {
+        const valor = parseFloat((venda.faturamento_bruto as string) || '0')
         return total + valor
       }, 0)
       

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     if (!supabase) {
       return NextResponse.json({ error: 'Supabase not configured' })
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     })) || []
 
     // Agrupar por data
-    const vendasPorData = vendas.reduce((acc: Record<string, any[]>, venda) => {
+    const vendasPorData = vendas.reduce((acc: Record<string, unknown[]>, venda) => {
       const data = venda.created_at_date
       if (!acc[data]) acc[data] = []
       acc[data].push(venda)
