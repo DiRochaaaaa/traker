@@ -1,4 +1,6 @@
 import { TrendingUp, TrendingDown, DollarSign, Target, Eye, MousePointerClick } from 'lucide-react'
+import { HighlightValue } from './HighlightValue'
+import { getProfitColors, getROASColors, isHighPerformance as checkHighPerformance, HIGH_PERFORMANCE_CONFIG } from '@/config/performanceColors'
 
 interface MetricsCardProps {
   title: string
@@ -6,6 +8,10 @@ interface MetricsCardProps {
   change?: number
   format?: 'currency' | 'percentage' | 'number'
   icon?: 'revenue' | 'profit' | 'roas' | 'cpm' | 'cpa' | 'purchases'
+  isHighPerformance?: boolean
+  additionalData?: {
+    faturamento?: number
+  }
 }
 
 const iconMap = {
@@ -17,7 +23,7 @@ const iconMap = {
   purchases: TrendingUp
 }
 
-export function MetricsCard({ title, value, change, format = 'number', icon }: MetricsCardProps) {
+export function MetricsCard({ title, value, change, format = 'number', icon, isHighPerformance = false, additionalData }: MetricsCardProps) {
   const IconComponent = icon ? iconMap[icon] : DollarSign
 
   const formatValue = (val: string | number) => {
@@ -36,14 +42,124 @@ export function MetricsCard({ title, value, change, format = 'number', icon }: M
     }
   }
 
+  // 🎨 Verificar performance usando configuração centralizada
+  const lucroValue = typeof value === 'string' ? parseFloat(value) : value
+  
+  const isLucroCard = title === 'Lucro Total'
+  const isROASCard = title === 'ROAS Médio'
+  
+  // Para ROAS, usar o valor direto. Para lucro, precisamos do ROAS para determinar a cor
+  const roasForColors = isROASCard ? lucroValue : (isLucroCard && additionalData?.faturamento ? (lucroValue / additionalData.faturamento) * 100 : lucroValue)
+  
+  // 💰 Calcular percentual do lucro (Lucro/Faturamento)
+  const getProfitPercentage = () => {
+    if (title === 'Lucro Total' && additionalData?.faturamento) {
+      const percentual = (lucroValue / additionalData.faturamento) * 100
+      return percentual.toFixed(1)
+    }
+    return null
+  }
+
+  // 🎨 Obter cores baseadas na configuração centralizada
+  const getColorsForCard = () => {
+    if (isLucroCard && additionalData?.faturamento) {
+      // Para lucro, usar as cores baseadas no ROAS
+      const roasCalculado = (lucroValue / additionalData.faturamento) * 100 / additionalData.faturamento * lucroValue
+      return getProfitColors(lucroValue, roasCalculado)
+    }
+    if (isROASCard) {
+      return getROASColors(lucroValue)
+    }
+    return { text: 'text-gray-400', background: 'bg-gray-800/30', border: 'border-gray-600/50', shadow: 'shadow-gray-500/20' }
+  }
+
+  const colors = getColorsForCard()
+  const shouldShowSpecialVisual = (isLucroCard || isROASCard) && colors.background !== 'bg-gray-800/30'
+  const isHighPerf = isLucroCard && additionalData?.faturamento ? 
+    checkHighPerformance(lucroValue, roasForColors) : isHighPerformance
+
+  // 🎨 Definir estilos baseados na configuração
+  const getCardStyle = () => {
+    if (isHighPerf) {
+      return HIGH_PERFORMANCE_CONFIG.colors.gradient + ` border-2 ${HIGH_PERFORMANCE_CONFIG.colors.border} shadow-xl ${HIGH_PERFORMANCE_CONFIG.colors.shadow}`
+    }
+    if (shouldShowSpecialVisual) {
+      return `bg-gradient-to-br from-gray-800 to-gray-900 border-2 ${colors.border} shadow-lg ${colors.shadow}`
+    }
+    return "bg-gray-800 border border-gray-700"
+  }
+
+  const getTitleColor = () => {
+    if (isHighPerf) return HIGH_PERFORMANCE_CONFIG.colors.text
+    if (shouldShowSpecialVisual) return colors.text.replace('400', '200')
+    return "text-gray-400"
+  }
+
+  const getValueColor = () => {
+    if (isHighPerf) return HIGH_PERFORMANCE_CONFIG.colors.text
+    if (shouldShowSpecialVisual) return colors.text.replace('400', '100')
+    return "text-white"
+  }
+  
+  const getIconStyle = () => {
+    if (isHighPerf) {
+      return `p-3 ${HIGH_PERFORMANCE_CONFIG.colors.background} rounded-full border-2 ${HIGH_PERFORMANCE_CONFIG.colors.border} shadow-lg ${HIGH_PERFORMANCE_CONFIG.colors.shadow}`
+    }
+    if (shouldShowSpecialVisual) {
+      return `p-3 ${colors.background} rounded-full border-2 ${colors.border} shadow-lg ${colors.shadow}`
+    }
+    return "p-3 bg-blue-900/30 rounded-full border border-blue-500/20"
+  }
+    
+  const getIconColor = () => {
+    if (isHighPerf) return HIGH_PERFORMANCE_CONFIG.colors.text
+    if (shouldShowSpecialVisual) return colors.text
+    return "text-blue-400"
+  }
+
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6">
+    <div className={`${getCardStyle()} rounded-lg shadow-xl p-6 transition-all duration-300`}>
+      {isHighPerformance && (
+        <div className="flex items-center justify-center mb-3">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full border bg-green-900/50 border-green-500/30">
+            <span className="text-green-400 text-xs">🏆</span>
+            <span className="text-green-300 text-xs font-medium">Excelente</span>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-400">{title}</p>
-          <p className="text-2xl font-bold text-white mt-1">
-            {formatValue(value)}
-          </p>
+        <div className="flex-1">
+          <p className={`text-sm font-medium ${getTitleColor()}`}>{title}</p>
+          <div className={`text-2xl font-bold mt-1`}>
+            {title === 'ROAS Médio' ? (
+              <HighlightValue 
+                value={typeof value === 'string' ? parseFloat(value) : value}
+                format="number"
+                isHighPerformance={typeof value === 'string' ? parseFloat(value) > 2 : value > 2}
+                className={getValueColor()}
+              />
+            ) : title === 'Lucro Total' ? (
+              <div className="flex flex-col">
+                <HighlightValue 
+                  value={typeof value === 'string' ? parseFloat(value) : value}
+                  format="currency"
+                  isHighPerformance={false}
+                  className={getValueColor()}
+                />
+                {getProfitPercentage() && (
+                  <span className={`text-sm mt-1 ${
+                    shouldShowSpecialVisual ? colors.text.replace('400', '300') : 'text-gray-400'
+                  }`}>
+                    {getProfitPercentage()}% do faturamento
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className={getValueColor()}>
+                {formatValue(value)}
+              </span>
+            )}
+          </div>
           {change !== undefined && (
             <div className="flex items-center mt-2">
               {change > 0 ? (
@@ -57,8 +173,8 @@ export function MetricsCard({ title, value, change, format = 'number', icon }: M
             </div>
           )}
         </div>
-        <div className="p-3 bg-blue-900/30 rounded-full border border-blue-500/20">
-          <IconComponent className="h-6 w-6 text-blue-400" />
+        <div className={getIconStyle()}>
+          <IconComponent className={`h-6 w-6 ${getIconColor()}`} />
         </div>
       </div>
     </div>

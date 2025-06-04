@@ -7,3 +7,150 @@
     @apply bg-gray-900 text-gray-100;
   }
 }
+
+/* 🎨 Scrollbar customizado para combinar com o design dark */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937; /* gray-800 */
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #4b5563 0%, #374151 100%); /* gray-600 to gray-700 */
+  border-radius: 8px;
+  border: 1px solid #374151; /* gray-700 */
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #6b7280 0%, #4b5563 100%); /* gray-500 to gray-600 */
+  border-color: #4b5563; /* gray-600 */
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #9ca3af 0%, #6b7280 100%); /* gray-400 to gray-500 */
+}
+
+::-webkit-scrollbar-corner {
+  background: #1f2937; /* gray-800 */
+}
+
+/* 🌟 Scrollbar especial para modais */
+.modal-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-scroll::-webkit-scrollbar-track {
+  background: #111827; /* gray-900 */
+  border-radius: 6px;
+}
+
+.modal-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%); /* blue-500 to blue-600 */
+  border-radius: 6px;
+  border: 1px solid #2563eb;
+}
+
+.modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%); /* blue-400 to blue-500 */
+}
+
+/* 🎯 Scrollbar para áreas de alta performance (verde) */
+.performance-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%); /* emerald-500 to emerald-600 */
+  border-color: #059669;
+}
+
+.performance-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #34d399 0%, #10b981 100%); /* emerald-400 to emerald-500 */
+}
+
+/* 🔥 Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #1f2937; /* thumb track */
+}
+
+/* 📱 Melhor experiência no mobile */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .modal-scroll::-webkit-scrollbar {
+    width: 3px;
+  }
+}
+
+/* 🎯 Animações para botões mobile */
+@keyframes mobile-button-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes mobile-button-hover {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-1px); }
+}
+
+/* 📱 Estilos especiais para botões mobile */
+@media (max-width: 640px) {
+  .mobile-button-grid button,
+  .mobile-button-grid a {
+    min-height: 60px;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .mobile-button-grid button:active,
+  .mobile-button-grid a:active {
+    animation: mobile-button-press 0.15s ease-out;
+  }
+  
+  .mobile-button-grid button:hover,
+  .mobile-button-grid a:hover {
+    animation: mobile-button-hover 0.2s ease-out forwards;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Efeito ripple nos botões mobile */
+  .mobile-button-grid button::before,
+  .mobile-button-grid a::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+  }
+  
+  .mobile-button-grid button:active::before,
+  .mobile-button-grid a:active::before {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* 🎨 Melhorias de acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-button-grid button,
+  .mobile-button-grid a {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  .mobile-button-grid button::before,
+  .mobile-button-grid a::before {
+    display: none !important;
+  }
+}
