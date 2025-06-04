@@ -35,6 +35,7 @@ export interface CampaignMetrics {
   compras: number
   cpa: number
   faturamento: number
+  ticketMedio: number
   roas: number
   lucro: number
   upsellCount: number
@@ -165,6 +166,9 @@ export function useFacebookData() {
       const finalCompras = purchases || comprasMain
       const finalCpa = cpa || (spend / Math.max(finalCompras, 1))
       
+      // Ticket médio = faturamento total / vendas main
+      const ticketMedio = finalCompras > 0 ? faturamentoTotal / finalCompras : 0
+      
       return {
         name: campaign.name,
         status: campaign.effective_status || campaign.status,
@@ -174,6 +178,7 @@ export function useFacebookData() {
         compras: finalCompras, // Apenas vendas main
         cpa: finalCpa, // CPA baseado em vendas main
         faturamento: faturamentoTotal, // Soma de todos os tipos
+        ticketMedio, // Faturamento total / vendas main
         roas,
         lucro,
         upsellCount,
@@ -185,16 +190,17 @@ export function useFacebookData() {
   }, [campaigns, vendas])
 
   const getTotals = useCallback((metrics: CampaignMetrics[]) => {
-    return metrics.reduce((totals, metric) => ({
-      dailyBudget: totals.dailyBudget + metric.dailyBudget,
-      valorUsado: totals.valorUsado + metric.valorUsado,
-      compras: totals.compras + metric.compras,
-      faturamento: totals.faturamento + metric.faturamento,
-      lucro: totals.lucro + metric.lucro,
-      upsellCount: totals.upsellCount + metric.upsellCount,
-      orderbumpCount: totals.orderbumpCount + metric.orderbumpCount,
-      cpm: metrics.length > 0 ? totals.cpm + metric.cpm : 0,
-      cpa: metrics.length > 0 ? totals.cpa + metric.cpa : 0,
+    const totals = metrics.reduce((acc, metric) => ({
+      dailyBudget: acc.dailyBudget + metric.dailyBudget,
+      valorUsado: acc.valorUsado + metric.valorUsado,
+      compras: acc.compras + metric.compras,
+      faturamento: acc.faturamento + metric.faturamento,
+      lucro: acc.lucro + metric.lucro,
+      upsellCount: acc.upsellCount + metric.upsellCount,
+      orderbumpCount: acc.orderbumpCount + metric.orderbumpCount,
+      cpm: acc.cpm + metric.cpm,
+      cpa: acc.cpa + metric.cpa,
+      ticketMedio: acc.ticketMedio + metric.ticketMedio,
       roas: 0 // Será calculado depois
     }), {
       dailyBudget: 0,
@@ -206,8 +212,19 @@ export function useFacebookData() {
       orderbumpCount: 0,
       cpm: 0,
       cpa: 0,
+      ticketMedio: 0,
       roas: 0
     })
+    
+    // Calcular médias corretas
+    const campaignCount = metrics.length
+    return {
+      ...totals,
+      cpm: campaignCount > 0 ? totals.cpm / campaignCount : 0,
+      cpa: campaignCount > 0 ? totals.cpa / campaignCount : 0,
+      ticketMedio: totals.compras > 0 ? totals.faturamento / totals.compras : 0,
+      roas: totals.valorUsado > 0 ? totals.faturamento / totals.valorUsado : 0
+    }
   }, [])
 
   const updatePeriod = useCallback((period: DatePeriod) => {

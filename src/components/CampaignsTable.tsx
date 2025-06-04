@@ -100,6 +100,10 @@ export function CampaignsTable({ campaigns }: CampaignsTableProps) {
                     <p className="text-white font-medium">{formatCurrency(campaign.faturamento)}</p>
                   </div>
                   <div>
+                    <span className="text-gray-400">Ticket Médio:</span>
+                    <p className="text-white font-medium">{formatCurrency(campaign.ticketMedio)}</p>
+                  </div>
+                  <div>
                     <span className="text-gray-400">ROAS:</span>
                     <p className={`font-medium ${getRoasColor(campaign.roas)}`}>
                       {formatNumber(campaign.roas)}x
@@ -131,22 +135,22 @@ export function CampaignsTable({ campaigns }: CampaignsTableProps) {
 
       {/* Desktop Table View */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full divide-y divide-gray-700" style={{minWidth: '1400px'}}>
+        <table className="w-full divide-y divide-gray-700" style={{minWidth: '1500px'}}>
           <thead className="bg-gray-900/50">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[20%]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[18%]">
                 Nome
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[5%]">
                 Status
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[8%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
                 Budget Diário
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[8%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
                 Valor Usado
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[5%]">
                 CPM
               </th>
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
@@ -155,19 +159,22 @@ export function CampaignsTable({ campaigns }: CampaignsTableProps) {
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
                 CPA
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[8%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
                 Faturamento
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
+                Ticket Médio
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[5%]">
                 ROAS
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[8%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
                 Lucro
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[5%]">
                 Upsells
               </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[5%]">
                 Bumps
               </th>
             </tr>
@@ -205,6 +212,9 @@ export function CampaignsTable({ campaigns }: CampaignsTableProps) {
                 </td>
                 <td className="px-2 py-3 text-sm text-gray-300">
                   {formatCurrency(campaign.faturamento)}
+                </td>
+                <td className="px-2 py-3 text-sm text-gray-300">
+                  {formatCurrency(campaign.ticketMedio)}
                 </td>
                 <td className="px-2 py-3 text-sm text-center">
                   <span className={`font-medium ${getRoasColor(campaign.roas)}`}>

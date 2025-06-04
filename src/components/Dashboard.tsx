@@ -47,21 +47,7 @@ export function Dashboard() {
   }
 
   const metrics = useMemo(() => processMetrics(), [processMetrics])
-  const totals = useMemo(() => {
-    const totalData = getTotals(metrics)
-    
-    // Calcular ROAS e médias corretas
-    const avgCpm = metrics.length > 0 ? totalData.cpm / metrics.length : 0
-    const avgCpa = metrics.length > 0 ? totalData.cpa / metrics.length : 0
-    const totalRoas = totalData.valorUsado > 0 ? totalData.faturamento / totalData.valorUsado : 0
-    
-    return {
-      ...totalData,
-      cpm: avgCpm,
-      cpa: avgCpa,
-      roas: totalRoas
-    }
-  }, [metrics, getTotals])
+  const totals = useMemo(() => getTotals(metrics), [metrics, getTotals])
 
   if (error) {
     return (
@@ -191,6 +177,7 @@ export function Dashboard() {
                 <div className="text-xs text-gray-400">
                   • <strong>Compras:</strong> Apenas vendas principais (main)<br/>
                   • <strong>Faturamento:</strong> Soma total (main + orderbump + upsell)<br/>
+                  • <strong>Ticket Médio:</strong> Faturamento total ÷ vendas main<br/>
                   • <strong>CPA:</strong> Baseado em conversões reais (vendas main)
                 </div>
               </div>
@@ -233,6 +220,12 @@ export function Dashboard() {
                 icon="revenue"
               />
               <MetricsCard
+                title="Ticket Médio"
+                value={totals.ticketMedio}
+                format="currency"
+                icon="revenue"
+              />
+              <MetricsCard
                 title="CPM Médio"
                 value={totals.cpm}
                 format="currency"
@@ -243,12 +236,6 @@ export function Dashboard() {
                 value={totals.cpa}
                 format="currency"
                 icon="cpa"
-              />
-              <MetricsCard
-                title="Budget Diário Total"
-                value={totals.dailyBudget}
-                format="currency"
-                icon="revenue"
               />
             </div>
 
