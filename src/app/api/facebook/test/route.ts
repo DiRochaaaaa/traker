@@ -1,133 +1,127 @@
 import { NextResponse } from 'next/server'
 
-const FB_TOKEN = process.env.FB_TOKEN
-const FB_AD_ACCOUNT_1 = process.env.FB_AD_ACCOUNT_1
-const FB_AD_ACCOUNT_2 = process.env.FB_AD_ACCOUNT_2
+// Função para obter todas as contas dinamicamente
+function getAllFacebookAccounts(): string[] {
+  const accounts: string[] = []
+  
+  // Buscar todas as variáveis FB_AD_ACCOUNT_*
+  Object.keys(process.env).forEach(key => {
+    if (key.startsWith('FB_AD_ACCOUNT_') && process.env[key]) {
+      accounts.push(process.env[key]!)
+    }
+  })
+  
+  return accounts
+}
 
 export async function GET() {
-  console.log('🧪 Testing Facebook API connectivity...')
-  
-  if (!FB_TOKEN) {
-    return NextResponse.json({
-      success: false,
-      error: 'FB_TOKEN not configured'
-    })
-  }
-
   try {
-    // Teste 1: Verificar se o token é válido
-    console.log('🔍 Testing token validity...')
-    const tokenUrl = `https://graph.facebook.com/v23.0/me`
-    const tokenParams = new URLSearchParams({
-      access_token: FB_TOKEN,
-      fields: 'id,name'
-    })
-
-    const tokenResponse = await fetch(`${tokenUrl}?${tokenParams}`)
-    const tokenData = await tokenResponse.json()
-
-    console.log('Token test response:', tokenData)
-
-    if (!tokenResponse.ok) {
+    console.log('🧪 Testing Facebook API access...')
+    
+    const FB_TOKEN = process.env.FB_TOKEN
+    const allAccounts = getAllFacebookAccounts()
+    
+    console.log(`🔐 FB_TOKEN exists: ${!!FB_TOKEN}`)
+    console.log(`🏢 Found ${allAccounts.length} configured accounts`)
+    
+    if (!FB_TOKEN) {
       return NextResponse.json({
         success: false,
-        error: 'Token validation failed',
-        details: tokenData
+        error: 'FB_TOKEN not found in environment variables'
       })
     }
 
-    // Teste 2: Verificar acesso às contas de anúncio
-    const accountTests = []
-    
-    for (const accountId of [FB_AD_ACCOUNT_1, FB_AD_ACCOUNT_2]) {
-      if (!accountId) continue
-      
-      try {
-        console.log(`🔍 Testing access to account: ${accountId}`)
-        const accountUrl = `https://graph.facebook.com/v23.0/${accountId}`
-        const accountParams = new URLSearchParams({
-          access_token: FB_TOKEN,
-          fields: 'id,name,account_status,disable_reason'
-        })
-
-        const accountResponse = await fetch(`${accountUrl}?${accountParams}`)
-        const accountData = await accountResponse.json()
-
-        accountTests.push({
-          accountId,
-          success: accountResponse.ok,
-          status: accountResponse.status,
-          data: accountData
-        })
-
-        console.log(`Account ${accountId} test:`, accountData)
-      } catch (error) {
-        accountTests.push({
-          accountId,
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        })
-      }
+    if (allAccounts.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No FB_AD_ACCOUNT_* variables found in environment'
+      })
     }
 
-    // Teste 3: Verificar se há campanhas
-    const campaignTests = []
+    // Test basic API access
+    console.log('🔍 Testing basic API access...')
+    const meResponse = await fetch(`https://graph.facebook.com/v23.0/me?access_token=${FB_TOKEN}`)
+    const meData = await meResponse.json()
     
-    for (const accountId of [FB_AD_ACCOUNT_1, FB_AD_ACCOUNT_2]) {
-      if (!accountId) continue
-      
-      try {
-        console.log(`🔍 Testing campaigns for account: ${accountId}`)
-        const campaignsUrl = `https://graph.facebook.com/v23.0/${accountId}/campaigns`
-        const campaignsParams = new URLSearchParams({
-          access_token: FB_TOKEN,
-          fields: 'id,name,status',
-          limit: '5'
-        })
+    console.log('👤 Me API Response:', meData)
 
-        const campaignsResponse = await fetch(`${campaignsUrl}?${campaignsParams}`)
-        const campaignsData = await campaignsResponse.json()
+    if (!meResponse.ok) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid or expired token',
+        details: meData
+      })
+    }
 
-        campaignTests.push({
-          accountId,
-          success: campaignsResponse.ok,
-          status: campaignsResponse.status,
-          campaignCount: campaignsData.data?.length || 0,
-          data: campaignsData
-        })
+    // Test account access
+    console.log('🏢 Testing account access...')
+    const accountTests = []
 
-        console.log(`Campaigns for ${accountId}:`, campaignsData)
-      } catch (error) {
-        campaignTests.push({
-          accountId,
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        })
-      }
+    for (const accountId of allAccounts) {
+      console.log(`🔍 Testing access to account: ${accountId}`)
+      const accountUrl = `https://graph.facebook.com/v23.0/${accountId}`
+      const accountParams = new URLSearchParams({
+        access_token: FB_TOKEN,
+        fields: 'id,name,account_status,disable_reason'
+      })
+
+      const accountResponse = await fetch(`${accountUrl}?${accountParams}`)
+      const accountData = await accountResponse.json()
+
+      accountTests.push({
+        accountId,
+        success: accountResponse.ok,
+        status: accountResponse.status,
+        data: accountData
+      })
+
+      console.log(`Account ${accountId} test:`, accountData)
+    }
+
+    // Test campaigns access
+    console.log('📊 Testing campaigns access...')
+    
+    for (const accountId of allAccounts) {
+      console.log(`🔍 Testing campaigns for account: ${accountId}`)
+      const campaignsUrl = `https://graph.facebook.com/v23.0/${accountId}/campaigns`
+      const campaignsParams = new URLSearchParams({
+        access_token: FB_TOKEN,
+        fields: 'id,name,status',
+        limit: '5'
+      })
+
+      const campaignsResponse = await fetch(`${campaignsUrl}?${campaignsParams}`)
+      const campaignsData = await campaignsResponse.json()
+
+      accountTests.push({
+        accountId,
+        success: campaignsResponse.ok,
+        status: campaignsResponse.status,
+        data: campaignsData,
+        type: 'campaigns'
+      })
+
+      console.log(`Campaigns for ${accountId}:`, campaignsData)
     }
 
     return NextResponse.json({
       success: true,
-      tokenTest: {
-        valid: true,
-        user: tokenData
-      },
+      message: 'Facebook API tests completed',
+      user: meData,
       accountTests,
-      campaignTests,
       summary: {
-        tokenValid: true,
-        accountsAccessible: accountTests.filter(t => t.success).length,
-        totalAccounts: accountTests.length,
-        campaignsFound: campaignTests.reduce((sum, t) => sum + (t.campaignCount || 0), 0)
+        totalAccounts: allAccounts.length,
+        accountsAccessible: accountTests.filter(t => t.success && !t.type).length,
+        accounts: allAccounts
       }
     })
 
   } catch (error) {
-    console.error('🚨 Facebook API test failed:', error)
+    console.error('❌ Error testing Facebook API:', error)
     return NextResponse.json({
       success: false,
-      error: 'Facebook API test failed',
+      error: 'Test failed',
       details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    })
   }
 } 

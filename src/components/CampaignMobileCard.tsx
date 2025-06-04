@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, TrendingUp, DollarSign, Target, MousePointerClick } from 'lucide-react'
+import { ChevronDown, ChevronUp, TrendingDown, DollarSign, Target, MousePointerClick } from 'lucide-react'
 import { CampaignMetrics } from '@/hooks/useFacebookData'
 import { isHighPerformance as checkHighPerformance } from '@/config/performanceColors'
 import { CampaignActions } from './CampaignActions'
@@ -100,35 +100,39 @@ export function CampaignMobileCard({ campaign, onRefresh }: CampaignMobileCardPr
           </div>
         </div>
 
-        {/* Métricas Principais - Resumo Compacto */}
-                 <div className="grid grid-cols-4 gap-1">
-                       <div className="text-center bg-gray-800/30 rounded p-1">
-              <DollarSign className="h-2.5 w-2.5 text-green-400 mx-auto mb-0.5" />
-              <p className="text-xs text-gray-400 mb-0.5 leading-none">Com.</p>
-              <p className="text-xs font-bold text-green-400 leading-none">{formatCurrency(campaign.comissao)}</p>
-            </div>
-            
-            <div className="text-center bg-gray-800/30 rounded p-1">
-              <TrendingUp className="h-2.5 w-2.5 text-blue-400 mx-auto mb-0.5" />
-              <p className="text-xs text-gray-400 mb-0.5 leading-none">Fat.</p>
-              <p className="text-xs font-bold text-blue-400 leading-none">{formatCurrency(campaign.faturamento)}</p>
-            </div>
-            
-            <div className="text-center bg-gray-800/30 rounded p-1">
-              <Target className="h-2.5 w-2.5 text-purple-400 mx-auto mb-0.5" />
-              <p className="text-xs text-gray-400 mb-0.5 leading-none">Lucro</p>
-              <p className={`text-xs font-bold leading-none ${getProfitColor(campaign.lucro, campaign.roas)}`}>
-                {formatCurrency(campaign.lucro)}
-              </p>
-            </div>
-            
-            <div className="text-center bg-gray-800/30 rounded p-1">
-              <MousePointerClick className="h-2.5 w-2.5 text-orange-400 mx-auto mb-0.5" />
-              <p className="text-xs text-gray-400 mb-0.5 leading-none">ROAS</p>
-              <p className={`text-xs font-bold leading-none ${getRoasColor(campaign.roas)}`}>
-                {formatNumber(campaign.roas)}x
-              </p>
-            </div>
+        {/* Métricas Principais - Mobile: Comissão, Gasto, Lucro, ROAS */}
+         <div className="grid grid-cols-4 gap-1">
+           {/* 1. Comissão */}
+           <div className="text-center bg-gray-800/30 rounded p-1">
+             <DollarSign className="h-2.5 w-2.5 text-green-400 mx-auto mb-0.5" />
+             <p className="text-xs text-gray-400 mb-0.5 leading-none">Com.</p>
+             <p className="text-xs font-bold text-green-400 leading-none">{formatCurrency(campaign.comissao)}</p>
+           </div>
+           
+           {/* 2. Gasto */}
+           <div className="text-center bg-gray-800/30 rounded p-1">
+             <TrendingDown className="h-2.5 w-2.5 text-red-400 mx-auto mb-0.5" />
+             <p className="text-xs text-gray-400 mb-0.5 leading-none">Gasto</p>
+             <p className="text-xs font-bold text-red-400 leading-none">{formatCurrency(campaign.valorUsado)}</p>
+           </div>
+           
+           {/* 3. Lucro */}
+           <div className="text-center bg-gray-800/30 rounded p-1">
+             <Target className="h-2.5 w-2.5 text-purple-400 mx-auto mb-0.5" />
+             <p className="text-xs text-gray-400 mb-0.5 leading-none">Lucro</p>
+             <p className={`text-xs font-bold leading-none ${getProfitColor(campaign.lucro, campaign.roas)}`}>
+               {formatCurrency(campaign.lucro)}
+             </p>
+           </div>
+           
+           {/* 4. ROAS */}
+           <div className="text-center bg-gray-800/30 rounded p-1">
+             <MousePointerClick className="h-2.5 w-2.5 text-orange-400 mx-auto mb-0.5" />
+             <p className="text-xs text-gray-400 mb-0.5 leading-none">ROAS</p>
+             <p className={`text-xs font-bold leading-none ${getRoasColor(campaign.roas)}`}>
+               {formatNumber(campaign.roas)}x
+             </p>
+           </div>
          </div>
       </div>
 

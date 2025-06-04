@@ -6,8 +6,14 @@ import { CampaignsTable } from './CampaignsTable'
 import { DateSelector } from './DateSelector'
 import { ColorConfigModal } from './ColorConfigModal'
 import { RefreshCw, Filter, TestTube, ShoppingBag, Settings } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
+
+interface AccountInfo {
+  id: string
+  name: string
+  accountId: string
+}
 
 export function Dashboard() {
   const [testResults, setTestResults] = useState<{
@@ -19,6 +25,8 @@ export function Dashboard() {
   } | null>(null)
   const [testLoading, setTestLoading] = useState(false)
   const [colorConfigOpen, setColorConfigOpen] = useState(false)
+  const [availableAccounts, setAvailableAccounts] = useState<AccountInfo[]>([])
+  const [isRefreshing, setIsRefreshing] = useState(false)
   
   const {
     loading,
@@ -30,8 +38,41 @@ export function Dashboard() {
     processMetrics,
     getTotals,
     getPlataformaMetrics,
-    refresh
+    forceRefresh
   } = useFacebookData()
+
+  // Buscar contas disponíveis dinamicamente
+  useEffect(() => {
+    const fetchAvailableAccounts = async () => {
+      try {
+        const response = await fetch('/api/facebook/test')
+        const data = await response.json()
+        
+        if (data.success && data.accountTests) {
+          const accounts: AccountInfo[] = []
+          
+          // Filtrar apenas os testes de contas (não de campanhas)
+          const accountTests = data.accountTests.filter((test: { type?: string }) => !test.type)
+          
+          accountTests.forEach((test: { success: boolean; data: { name?: string }; accountId: string }, index: number) => {
+            if (test.success && test.data) {
+              accounts.push({
+                id: `account${index + 1}`,
+                name: test.data.name || `Conta ${index + 1}`,
+                accountId: test.accountId.replace('act_', '')
+              })
+            }
+          })
+          
+          setAvailableAccounts(accounts)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar contas disponíveis:', error)
+      }
+    }
+
+    fetchAvailableAccounts()
+  }, [])
 
   const testConnectivity = async () => {
     setTestLoading(true)
@@ -73,6 +114,26 @@ export function Dashboard() {
     return null
   }
 
+  // Função de refresh melhorada com controle local
+  const handleRefresh = async () => {
+    if (isRefreshing) {
+      console.log('🚫 Refresh já em andamento, ignorando clique')
+      return
+    }
+
+    console.log('🔄 Iniciando refresh manual do botão')
+    setIsRefreshing(true)
+    
+    try {
+      await forceRefresh()
+      console.log('✅ Refresh manual concluído')
+    } catch (error) {
+      console.error('❌ Erro no refresh manual:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -81,7 +142,7 @@ export function Dashboard() {
             <h2 className="text-lg md:text-xl font-semibold text-red-400 mb-4">Erro ao carregar dados</h2>
             <p className="text-gray-300 mb-6 text-sm md:text-base">{error}</p>
             <button
-              onClick={refresh}
+              onClick={handleRefresh}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base"
             >
               Tentar novamente
@@ -139,12 +200,12 @@ export function Dashboard() {
                 <span className="text-xs font-medium">{testLoading ? 'Testing...' : 'Testar'}</span>
               </button>
                               <button
-                onClick={refresh}
-                disabled={loading}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
                 className="flex flex-col items-center justify-center p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <RefreshCw className={`h-5 w-5 mb-1 ${loading ? 'animate-spin' : ''}`} />
-                <span className="text-xs font-medium">{loading ? 'Loading...' : 'Refresh'}</span>
+                <RefreshCw className={`h-5 w-5 mb-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="text-xs font-medium">{isRefreshing ? 'Atualizando...' : 'Refresh'}</span>
               </button>
             </div>
 
@@ -177,12 +238,12 @@ export function Dashboard() {
                 <TestTube className={`h-4 w-4 ${testLoading ? 'animate-spin' : ''}`} />
               </button>
               <button
-                onClick={refresh}
-                disabled={loading}
+                onClick={handleRefresh}
+                disabled={isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas}
                 className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Atualizar"
+                title={(isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas) ? 'Carregando...' : 'Atualizar'}
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas) ? 'animate-spin' : ''}`} />
               </button>
             </div>
 
@@ -214,12 +275,12 @@ export function Dashboard() {
                 <span>Testar API</span>
               </button>
               <button
-                onClick={refresh}
-                disabled={loading}
+                onClick={handleRefresh}
+                disabled={isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                <span>Atualizar</span>
+                <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas) ? 'animate-spin' : ''}`} />
+                <span>{(isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas) ? 'Carregando...' : 'Atualizar'}</span>
               </button>
             </div>
           </div>
@@ -279,65 +340,131 @@ export function Dashboard() {
                 className="block w-full md:w-auto px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
               >
                 <option value="all">Todas as Contas</option>
-                <option value="account1">Conta 1 (283711871364526)</option>
-                <option value="account2">Conta 2 (1398807304184031)</option>
+                {availableAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({account.accountId})
+                  </option>
+                ))}
               </select>
             </div>
           </div>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-8 md:py-12">
-            <RefreshCw className="h-6 w-6 md:h-8 md:w-8 animate-spin mx-auto text-blue-400 mb-4" />
-            <p className="text-gray-400 text-sm md:text-base">Carregando dados...</p>
-          </div>
-        )}
-
-        {/* Metrics Cards */}
-        {!loading && (
+        {/* Metrics Cards - Sempre visíveis com loading states */}
+        {(loading.isInitialLoad || loading.campaigns || loading.vendas) ? (
           <>
-            {/* Summary Stats */}
-            <div className={`mb-4 md:mb-6 ${
-              isExceptionalPerformance 
-                ? 'bg-gradient-to-br from-green-900/40 via-green-800/30 to-emerald-900/40 border-2 border-green-500/50 shadow-lg shadow-green-500/20' 
-                : 'bg-gray-800 border border-gray-700'
-            } rounded-lg p-4 transition-all duration-300`}>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className={`text-base md:text-lg font-semibold ${
-                  isExceptionalPerformance ? 'text-green-100' : 'text-white'
-                }`}>Resumo</h3>
-                {isExceptionalPerformance && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-green-400 text-sm animate-pulse">🎯</span>
-                    <span className="text-green-300 text-xs font-medium">Performance Top</span>
+            {/* Loading indicators no topo durante carregamento */}
+            <div className="text-center py-4 mb-6">
+              <RefreshCw className="h-5 w-5 animate-spin mx-auto text-blue-400 mb-2" />
+              <p className="text-gray-400 text-sm">Carregando dados...</p>
+            </div>
+
+            {/* Skeleton para Main Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6 animate-pulse">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-4 bg-gray-700 rounded w-24"></div>
+                    <div className="h-6 w-6 bg-gray-700 rounded"></div>
                   </div>
-                )}
+                  <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
+                  <div className="h-3 bg-gray-700 rounded w-20"></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Skeleton para Secondary Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6 animate-pulse">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-4 bg-gray-700 rounded w-24"></div>
+                    <div className="h-6 w-6 bg-gray-700 rounded"></div>
+                  </div>
+                  <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
+                  <div className="h-3 bg-gray-700 rounded w-20"></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Skeleton para Upsell/Orderbump Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6 animate-pulse">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-4 bg-gray-700 rounded w-24"></div>
+                    <div className="h-6 w-6 bg-gray-700 rounded"></div>
+                  </div>
+                  <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
+                  <div className="h-3 bg-gray-700 rounded w-20"></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Skeleton para tabela de campanhas */}
+            <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden mb-6">
+              <div className="p-3 md:p-4 border-b border-gray-700 animate-pulse">
+                <div className="h-6 bg-gray-700 rounded w-48"></div>
               </div>
-              <div className={`text-sm ${
-                isExceptionalPerformance ? 'text-green-200' : 'text-gray-300'
-              } space-y-1`}>
-                <div>
-                  <span className="font-medium">{metrics.length}</span> campanhas com gasto maior que R$ 0,00
-                  {isExceptionalPerformance && (
-                    <span className="ml-2 text-green-400 text-xs">✨ Resultados excelentes!</span>
-                  )}
-                </div>
-                <div className={`text-xs ${
-                  isExceptionalPerformance ? 'text-green-300/80' : 'text-gray-400'
-                }`}>
-                  • <strong>Compras:</strong> Apenas vendas principais (main)<br/>
-                  • <strong>Faturamento:</strong> Soma total (main + orderbump + upsell)<br/>
-                  • <strong>Ticket Médio:</strong> Faturamento total ÷ vendas main<br/>
-                  • <strong>CPA:</strong> Baseado em conversões reais (vendas main)
-                  {isExceptionalPerformance && (
-                    <>
-                      <br/>• <strong className="text-green-400">🚀 ROAS {'>'}= 2 e Lucro Positivo!</strong>
-                    </>
-                  )}
-                </div>
+              
+              {/* Mobile skeleton list */}
+              <div className="block md:hidden p-3 space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-gray-800/50 border border-gray-700/50 rounded-lg animate-pulse">
+                    <div className="p-2.5">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex-1 pr-2">
+                          <div className="h-3 bg-gray-700 rounded w-3/4"></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-5 bg-gray-700 rounded w-12"></div>
+                          <div className="h-3 w-3 bg-gray-700 rounded"></div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1">
+                        {Array.from({ length: 4 }).map((_, j) => (
+                          <div key={j} className="text-center bg-gray-800/30 rounded p-1">
+                            <div className="h-2.5 w-2.5 bg-gray-700 rounded-full mx-auto mb-0.5"></div>
+                            <div className="h-2.5 bg-gray-700 rounded w-8 mx-auto mb-0.5"></div>
+                            <div className="h-2.5 bg-gray-700 rounded w-10 mx-auto"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop skeleton table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-900/50">
+                    <tr>
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <th key={i} className="px-3 py-3">
+                          <div className="h-4 bg-gray-700 rounded animate-pulse"></div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-gray-800">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <tr key={i} className="border-b border-gray-700">
+                        {Array.from({ length: 10 }).map((_, j) => (
+                          <td key={j} className="px-3 py-4">
+                            <div className="h-4 bg-gray-700 rounded animate-pulse"></div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
+          </>
+        ) : (
+          <>
+
 
             {/* Main Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">

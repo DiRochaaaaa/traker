@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { CampaignMetrics } from '@/hooks/useFacebookData'
 import { CampaignActions } from './CampaignActions'
 import { SkeletonCard } from './SkeletonCard'
@@ -118,8 +119,13 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
   }
 
   const getSortIcon = (key: SortKey) => {
-    if (sortKey !== key) return '↕️'
-    return sortDirection === 'asc' ? '⬆️' : '⬇️'
+    if (sortKey !== key) {
+      return <ArrowUpDown className="h-4 w-4 text-gray-500" />
+    }
+    
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-4 w-4 text-blue-400" />
+      : <ArrowDown className="h-4 w-4 text-blue-400" />
   }
 
   const sortedCampaigns = [...campaigns].sort((a, b) => {
@@ -221,14 +227,40 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
                   Orçamento {getSortIcon('dailyBudget')}
                 </button>
               </th>
+              {/* Nova ordem: Comissão, Gasto, Lucro, ROAS */}
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
+                <button 
+                  onClick={() => handleSort('comissao')}
+                  className="flex items-center gap-1 hover:text-white transition-colors"
+                >
+                  Comissão {getSortIcon('comissao')}
+                </button>
+              </th>
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
                 <button 
                   onClick={() => handleSort('valorUsado')}
                   className="flex items-center gap-1 hover:text-white transition-colors"
                 >
-                  Investido {getSortIcon('valorUsado')}
+                  Gasto {getSortIcon('valorUsado')}
                 </button>
               </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
+                <button 
+                  onClick={() => handleSort('lucro')}
+                  className="flex items-center gap-1 hover:text-white transition-colors"
+                >
+                  Lucro {getSortIcon('lucro')}
+                </button>
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[5%]">
+                <button 
+                  onClick={() => handleSort('roas')}
+                  className="flex items-center gap-1 hover:text-white transition-colors"
+                >
+                  ROAS {getSortIcon('roas')}
+                </button>
+              </th>
+              {/* Outras métricas após as principais */}
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
                 <button 
                   onClick={() => handleSort('cpm')}
@@ -255,14 +287,6 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
               </th>
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
                 <button 
-                  onClick={() => handleSort('comissao')}
-                  className="flex items-center gap-1 hover:text-white transition-colors"
-                >
-                  Comissão {getSortIcon('comissao')}
-                </button>
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
-                <button 
                   onClick={() => handleSort('faturamento')}
                   className="flex items-center gap-1 hover:text-white transition-colors"
                 >
@@ -275,22 +299,6 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
                   className="flex items-center gap-1 hover:text-white transition-colors"
                 >
                   Ticket {getSortIcon('ticketMedio')}
-                </button>
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[5%]">
-                <button 
-                  onClick={() => handleSort('roas')}
-                  className="flex items-center gap-1 hover:text-white transition-colors"
-                >
-                  ROAS {getSortIcon('roas')}
-                </button>
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
-                <button 
-                  onClick={() => handleSort('lucro')}
-                  className="flex items-center gap-1 hover:text-white transition-colors"
-                >
-                  Lucro {getSortIcon('lucro')}
                 </button>
               </th>
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[4%]">
@@ -358,26 +366,20 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
                     Clique para editar
                   </div>
                 </td>
-                <td className="px-2 py-3 text-sm text-gray-300">
-                  {formatCurrency(campaign.valorUsado)}
-                </td>
-                <td className="px-2 py-3 text-sm text-gray-300">
-                  {formatCurrency(campaign.cpm)}
-                </td>
-                <td className="px-2 py-3 text-sm text-gray-300 text-center">
-                  {campaign.compras}
-                </td>
-                <td className="px-2 py-3 text-sm text-gray-300">
-                  {formatCurrency(campaign.cpa)}
-                </td>
+                {/* Nova ordem: Comissão, Gasto, Lucro, ROAS */}
                 <td className="px-2 py-3 text-sm text-green-400 font-medium">
                   {formatCurrency(campaign.comissao)}
                 </td>
-                <td className="px-2 py-3 text-sm text-gray-300">
-                  {formatCurrency(campaign.faturamento)}
+                <td className="px-2 py-3 text-sm text-red-400 font-medium">
+                  {formatCurrency(campaign.valorUsado)}
                 </td>
-                <td className="px-2 py-3 text-sm text-gray-300">
-                  {formatCurrency(campaign.ticketMedio)}
+                <td className="px-2 py-3 text-sm">
+                  <span className={`font-medium ${getProfitColor(campaign.lucro, campaign.roas)} ${
+                    isHighPerformanceCampaign(campaign) ? 'bg-green-900/30 px-2 py-1 rounded text-green-300' : 
+                    getProfitBackground(campaign.lucro, campaign.roas) ? `${getProfitBackground(campaign.lucro, campaign.roas)} px-2 py-1 rounded` : ''
+                  }`}>
+                    {formatCurrency(campaign.lucro)}
+                  </span>
                 </td>
                 <td className="px-2 py-3 text-sm text-center">
                   <span className={`font-medium ${getRoasColor(campaign.roas)} ${
@@ -387,13 +389,21 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
                     {formatNumber(campaign.roas)}x
                   </span>
                 </td>
-                <td className="px-2 py-3 text-sm">
-                  <span className={`font-medium ${getProfitColor(campaign.lucro, campaign.roas)} ${
-                    isHighPerformanceCampaign(campaign) ? 'bg-green-900/30 px-2 py-1 rounded text-green-300' : 
-                    getProfitBackground(campaign.lucro, campaign.roas) ? `${getProfitBackground(campaign.lucro, campaign.roas)} px-2 py-1 rounded` : ''
-                  }`}>
-                    {formatCurrency(campaign.lucro)}
-                  </span>
+                {/* Outras métricas após as principais */}
+                <td className="px-2 py-3 text-sm text-gray-300">
+                  {formatCurrency(campaign.cpm)}
+                </td>
+                <td className="px-2 py-3 text-sm text-gray-300 text-center">
+                  {campaign.compras}
+                </td>
+                <td className="px-2 py-3 text-sm text-gray-300">
+                  {formatCurrency(campaign.cpa)}
+                </td>
+                <td className="px-2 py-3 text-sm text-gray-300">
+                  {formatCurrency(campaign.faturamento)}
+                </td>
+                <td className="px-2 py-3 text-sm text-gray-300">
+                  {formatCurrency(campaign.ticketMedio)}
                 </td>
                 <td className="px-2 py-3 text-sm text-gray-300 text-center">
                   {campaign.upsellCount}

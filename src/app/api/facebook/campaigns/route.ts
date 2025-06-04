@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const FB_TOKEN = process.env.FB_TOKEN
-const FB_AD_ACCOUNT_1 = process.env.FB_AD_ACCOUNT_1
-const FB_AD_ACCOUNT_2 = process.env.FB_AD_ACCOUNT_2
-
-
+// Função para obter todas as contas dinamicamente
+function getAllFacebookAccounts(): string[] {
+  const accounts: string[] = []
+  
+  // Buscar todas as variáveis FB_AD_ACCOUNT_*
+  Object.keys(process.env).forEach(key => {
+    if (key.startsWith('FB_AD_ACCOUNT_') && process.env[key]) {
+      accounts.push(process.env[key]!)
+    }
+  })
+  
+  return accounts
+}
 
 function getDatePreset(period: string) {
   switch (period) {
@@ -22,16 +30,27 @@ function getDatePreset(period: string) {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('🚀 Starting Facebook API request...')
-  
-  // Verificar se as credenciais do Facebook estão configuradas
-  if (!FB_TOKEN || !FB_AD_ACCOUNT_1 || !FB_AD_ACCOUNT_2) {
-    console.error('❌ Missing Facebook credentials')
-    return NextResponse.json({
-      success: false,
-      error: 'Facebook credentials not configured. Please set FB_TOKEN, FB_AD_ACCOUNT_1, and FB_AD_ACCOUNT_2',
-      data: []
-    })
+  const FB_TOKEN = process.env.FB_TOKEN
+  const allAccounts = getAllFacebookAccounts()
+
+  if (!FB_TOKEN) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Facebook credentials not configured. Please set FB_TOKEN'
+      },
+      { status: 500 }
+    )
+  }
+
+  if (allAccounts.length === 0) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'No Facebook ad accounts configured. Please set FB_AD_ACCOUNT_1, FB_AD_ACCOUNT_2, etc.'
+      },
+      { status: 500 }
+    )
   }
 
   const { searchParams } = new URL(request.url)
@@ -39,19 +58,31 @@ export async function GET(request: NextRequest) {
   const period = searchParams.get('period') || 'today'
 
   console.log(`📊 API called with period: ${period}, account: ${account}`)
+  console.log(`🏢 Available accounts: ${allAccounts.length} found`)
 
   try {
     let accounts = []
     
     if (account === 'all') {
-      accounts = [FB_AD_ACCOUNT_1, FB_AD_ACCOUNT_2]
-    } else if (account === 'account1') {
-      accounts = [FB_AD_ACCOUNT_1]
-    } else if (account === 'account2') {
-      accounts = [FB_AD_ACCOUNT_2]
+      accounts = allAccounts
+    } else if (account.startsWith('account') && account.length > 7) {
+      // account1, account2, account3, etc.
+      const accountNumber = parseInt(account.replace('account', ''))
+      if (accountNumber > 0 && accountNumber <= allAccounts.length) {
+        accounts = [allAccounts[accountNumber - 1]]
+      } else {
+        accounts = allAccounts
+      }
     } else {
-      accounts = [FB_AD_ACCOUNT_1, FB_AD_ACCOUNT_2]
+      // Se for um ID específico
+      if (allAccounts.includes(account)) {
+        accounts = [account]
+      } else {
+        accounts = allAccounts
+      }
     }
+
+    console.log(`🎯 Processing ${accounts.length} account(s)`)
 
     const datePreset = getDatePreset(period)
     console.log(`📅 Date preset: ${datePreset}`)
@@ -214,9 +245,12 @@ export async function GET(request: NextRequest) {
       period: period,
       datePreset: datePreset,
       totalCampaigns: allResults.length,
+      accountsProcessed: accounts.length,
+      availableAccounts: allAccounts.length,
       debug: {
         accountsProcessed: accounts.length,
-        rawResults: allResults.length
+        rawResults: allResults.length,
+        allAccounts: allAccounts
       }
     })
 

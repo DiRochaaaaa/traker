@@ -104,10 +104,12 @@ export function useFacebookData() {
 
   const fetchCampaigns = useCallback(async (account: string = 'all', period: DatePeriod = 'today') => {
     const cacheKey = getCacheKey('campaigns', account, period)
-    const cachedData = getCachedData(cacheKey)
     
+    // ⚡ CACHE HIT - Retorno imediato sem loading
+    const cachedData = getCachedData(cacheKey)
     if (cachedData) {
       setCampaigns(cachedData as FacebookCampaignData[])
+      console.log(`⚡ Cache HIT: Campanhas ${account} ${period} (sem request)`)
       return
     }
 
@@ -115,6 +117,7 @@ export function useFacebookData() {
     setError(null)
     
     try {
+      console.log(`🚀 Cache MISS: Buscando campanhas ${account} ${period}`)
       const response = await fetch(`/api/facebook/campaigns?account=${account}&period=${period}`)
       const result = await response.json()
       
@@ -125,99 +128,123 @@ export function useFacebookData() {
       setCampaigns(result.data)
       setCachedData(cacheKey, result.data)
       setLastUpdate(new Date())
+      console.log(`✅ Campanhas carregadas e cacheadas: ${result.data.length} campanhas`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(prev => ({ ...prev, campaigns: false, isInitialLoad: false }))
     }
-  }, [cache])
+  }, [cache]) // Mantém cache como dependência de forma controlada
 
   const fetchVendas = useCallback(async (period: DatePeriod = 'today') => {
     const cacheKey = getCacheKey('vendas', undefined, period)
-    const cachedData = getCachedData(cacheKey)
     
+    // ⚡ CACHE HIT - Retorno imediato sem loading  
+    const cachedData = getCachedData(cacheKey)
     if (cachedData) {
       setVendas(cachedData as Venda[])
+      console.log(`⚡ Cache HIT: Vendas ${period} (sem request)`)
       return
     }
 
     setLoading(prev => ({ ...prev, vendas: true }))
     
     try {
-      console.log(`🔍 Buscando vendas para período: ${period}`)
+      console.log(`🚀 Cache MISS: Buscando vendas ${period}`)
       const response = await fetch(`/api/vendas?period=${period}`)
       const result = await response.json()
       
       if (result.success) {
-        console.log(`📊 Vendas encontradas: ${result.data.length} vendas`)
-        console.log(`📅 Período: ${period} | Range: ${JSON.stringify(result.dateRange)}`)
-        
-        // Log detalhado das vendas
-        if (result.data.length > 0) {
-          const vendasPorCampanha = result.data.reduce((acc: Record<string, Venda[]>, venda: Venda) => {
-            const campaignId = venda.campaign_id || 'sem_campaign_id'
-            if (!acc[campaignId]) acc[campaignId] = []
-            acc[campaignId].push(venda)
-            return acc
-          }, {})
-          
-          console.log('📊 Vendas agrupadas por campaign_id:')
-          Object.entries(vendasPorCampanha).forEach(([campaignId, vendas]) => {
-            const faturamentoTotal = (vendas as Venda[]).reduce((total: number, v: Venda) => total + parseMonetaryValue(v.faturamento_bruto), 0)
-            console.log(`  📈 Campaign ${campaignId}: ${(vendas as Venda[]).length} vendas, R$ ${faturamentoTotal.toFixed(2)}`)
-          })
-          
-          const primeiraVenda = result.data[0]
-          console.log('🔍 Primeira venda detalhada:', {
-            produto: primeiraVenda?.produto,
-            faturamento: primeiraVenda?.faturamento_bruto,
-            campaign_id: primeiraVenda?.campaign_id,
-            created_at: primeiraVenda?.created_at,
-            tipo: primeiraVenda?.tipo
-          })
-          
-          // Calcular faturamento total para debug
-          const faturamentoTotalGeral = result.data.reduce((total: number, venda: Venda) => {
-            return total + parseMonetaryValue(venda.faturamento_bruto)
-          }, 0)
-          console.log(`💰 FATURAMENTO TOTAL CALCULADO: R$ ${faturamentoTotalGeral.toFixed(2)}`)
-        } else {
-          console.warn(`⚠️ Nenhuma venda encontrada para o período ${period}`)
-        }
-        
+        console.log(`✅ Vendas carregadas: ${result.data.length} vendas`)
         setVendas(result.data)
         setCachedData(cacheKey, result.data)
         setLastUpdate(new Date())
       } else {
         console.error('❌ Failed to fetch vendas:', result.error)
-        setVendas([]) // Limpar vendas em caso de erro
+        setVendas([])
       }
     } catch (err) {
       console.error('💥 Error fetching vendas:', err)
-      setVendas([]) // Limpar vendas em caso de erro
+      setVendas([])
     } finally {
-      setLoading(prev => ({ ...prev, vendas: false }))
+      setLoading(prev => ({ ...prev, vendas: false, isInitialLoad: false }))
     }
-  }, [cache])
+  }, [cache]) // Mantém cache como dependência de forma controlada
 
-  // Carregamento paralelo e progressivo
-  const fetchData = useCallback(async (account: string = 'all', period: DatePeriod = 'today') => {
+  // 🚀 CARREGAMENTO PARALELO ULTRA-RÁPIDO
+  const fetchAllData = useCallback(async (account: string = 'all', period: DatePeriod = 'today') => {
+    console.log(`🔥 INICIANDO carregamento paralelo: ${account} ${period}`)
     setLoading(prev => ({ ...prev, metrics: true }))
     
-    // Fetch em paralelo para velocidade máxima
+    const startTime = Date.now()
+    
+    // ⚡ Execução paralela para velocidade máxima
     await Promise.all([
       fetchCampaigns(account, period),
       fetchVendas(period)
     ])
     
+    const duration = Date.now() - startTime
+    console.log(`⚡ CONCLUÍDO em ${duration}ms - Cache hits: ${cacheHit}`)
     setLoading(prev => ({ ...prev, metrics: false }))
-  }, [fetchCampaigns, fetchVendas])
+  }, [fetchCampaigns, fetchVendas, cacheHit])
 
-  // Smart refresh que mantém dados enquanto atualiza
+  // 🔄 FORCE REFRESH - Limpa cache e força carregamento
+  const forceRefresh = useCallback(async () => {
+    console.log('🔄 FORCE REFRESH iniciado - limpando cache e forçando carregamento')
+    
+    // Limpar todo o cache para garantir dados frescos
+    setCache(new Map())
+    
+    // Resetar estados
+    setError(null)
+    setCacheHit(false)
+    
+    // Força carregamento mesmo se já estiver carregando
+    setLoading(() => ({ 
+      campaigns: true, 
+      vendas: true, 
+      metrics: true, 
+      isInitialLoad: false 
+    }))
+    
+    try {
+      const startTime = Date.now()
+      
+      // Força busca direta nas APIs (cache limpo garante que não há cache hit)
+      await Promise.all([
+        fetchCampaigns(selectedAccount, selectedPeriod),
+        fetchVendas(selectedPeriod)
+      ])
+      
+      const duration = Date.now() - startTime
+      console.log(`✅ FORCE REFRESH concluído em ${duration}ms`)
+      setLastUpdate(new Date())
+    } catch (error) {
+      console.error('❌ Erro no force refresh:', error)
+      setError(error instanceof Error ? error.message : 'Erro desconhecido')
+    } finally {
+      setLoading(() => ({ 
+        campaigns: false, 
+        vendas: false, 
+        metrics: false, 
+        isInitialLoad: false 
+      }))
+    }
+  }, [fetchCampaigns, fetchVendas, selectedAccount, selectedPeriod])
+
+  // 🎯 REFRESH INTELIGENTE (sem loading principal para UX melhor)
   const smartRefresh = useCallback(async () => {
-    // Não mostrar loading principal, apenas flags específicas
-    await fetchData(selectedAccount, selectedPeriod)
-  }, [fetchData, selectedAccount, selectedPeriod])
+    console.log('🔄 Smart refresh - mantendo dados enquanto atualiza')
+    
+    // Não mostrar loading principal, manter dados atuais visíveis
+    await Promise.all([
+      fetchCampaigns(selectedAccount, selectedPeriod),
+      fetchVendas(selectedPeriod)
+    ])
+    
+    console.log('✨ Smart refresh concluído')
+  }, [fetchCampaigns, fetchVendas, selectedAccount, selectedPeriod])
 
   // Função para normalizar valores monetários (aceita tanto 10.00 quanto 10,00)
   const parseMonetaryValue = (value: string | null | number): number => {
@@ -455,10 +482,14 @@ export function useFacebookData() {
       return hasSpend || hasSales
     })
     
+    // 💰 ORDENAR POR MAIOR LUCRO (padrão sempre)
+    const sortedMetrics = filteredMetrics.sort((a, b) => b.lucro - a.lucro)
+    
     console.log(`📊 Total de métricas processadas: ${allMetrics.length} (${facebookCampaignMetrics.length} Facebook + ${orphanCampaignMetrics.length} órfãs)`)
     console.log(`📊 Métricas após filtro: ${filteredMetrics.length} (removidas: ${allMetrics.length - filteredMetrics.length})`)
+    console.log(`💰 Métricas ordenadas por MAIOR LUCRO automaticamente`)
     
-    return filteredMetrics
+    return sortedMetrics
   }, [campaigns, vendas])
 
   const getTotals = useCallback((metrics: CampaignMetrics[]) => {
@@ -534,19 +565,18 @@ export function useFacebookData() {
 
   const updatePeriod = useCallback((period: DatePeriod) => {
     setSelectedPeriod(period)
-    fetchCampaigns(selectedAccount, period)
-    fetchVendas(period)
-  }, [selectedAccount, fetchCampaigns, fetchVendas])
+    // As funções fetch serão chamadas pelo useEffect quando selectedPeriod mudar
+  }, [])
 
   const updateAccount = useCallback((account: string) => {
     setSelectedAccount(account)
-    fetchCampaigns(account, selectedPeriod)
-  }, [selectedPeriod, fetchCampaigns])
+    // As funções fetch serão chamadas pelo useEffect quando selectedAccount mudar
+  }, [])
 
   useEffect(() => {
-    fetchCampaigns(selectedAccount, selectedPeriod)
-    fetchVendas(selectedPeriod)
-  }, [selectedAccount, selectedPeriod, fetchCampaigns, fetchVendas])
+    console.log(`🔄 useEffect triggered: ${selectedAccount} ${selectedPeriod}`)
+    fetchAllData(selectedAccount, selectedPeriod)
+  }, [selectedAccount, selectedPeriod, fetchAllData])
 
   return {
     campaigns,
@@ -561,13 +591,12 @@ export function useFacebookData() {
     setSelectedPeriod: updatePeriod,
     fetchCampaigns,
     fetchVendas,
-    fetchData,
+    fetchAllData,
     processMetrics,
     getTotals,
     getPlataformaMetrics,
-    refresh: () => {
-      fetchData(selectedAccount, selectedPeriod)
-    },
-    smartRefresh
+    refresh: forceRefresh,
+    smartRefresh,
+    forceRefresh
   }
 } 
