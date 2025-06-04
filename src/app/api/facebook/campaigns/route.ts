@@ -129,6 +129,8 @@ export async function GET(request: NextRequest) {
                 status: campaign.status,
                 effective_status: campaign.effective_status,
                 daily_budget: campaign.daily_budget,
+                bid_strategy: campaign.bid_strategy || null,
+                budget_optimization: campaign.budget_optimization || null,
                 account_id: accountId,
                 insights: campaignInsightsData
               })
@@ -169,6 +171,8 @@ export async function GET(request: NextRequest) {
                   status: campaignData.status,
                   effective_status: campaignData.effective_status,
                   daily_budget: campaignData.daily_budget,
+                  bid_strategy: campaignData.bid_strategy || null,
+                  budget_optimization: campaignData.budget_optimization || null,
                   account_id: accountId,
                   insights: {
                     data: campaignInsights
@@ -189,23 +193,27 @@ export async function GET(request: NextRequest) {
 
     console.log(`\n📊 Total campaigns before filtering: ${allResults.length}`)
 
-    // Filtrar apenas campanhas com gasto > 0
-    const campaignsWithSpend = allResults.filter(campaign => {
+    // Log de todas as campanhas para debug
+    console.log(`\n📊 Total campaigns found: ${allResults.length}`)
+    
+    // Analisar insights de cada campanha
+    allResults.forEach(campaign => {
       const insights = campaign.insights?.data?.[0]
       const spend = parseFloat(insights?.spend || '0')
-      console.log(`💰 Campaign ${campaign.name} spend: ${spend}`)
-      return spend > 0
+      console.log(`💰 Campaign "${campaign.name}" (${campaign.id}):`)
+      console.log(`  - Spend: R$ ${spend}`)
+      console.log(`  - Status: ${campaign.status}`)
+      console.log(`  - Insights:`, insights ? 'Found' : 'Not found')
     })
 
-    console.log(`✅ Campaigns with spend > 0: ${campaignsWithSpend.length}`)
-
+    // Retornar TODAS as campanhas (não filtrar por spend)
+    // O filtro por spend será feito no frontend
     return NextResponse.json({
       success: true,
-      data: campaignsWithSpend,
+      data: allResults, // Removido o filtro
       period: period,
       datePreset: datePreset,
       totalCampaigns: allResults.length,
-      campaignsWithSpend: campaignsWithSpend.length,
       debug: {
         accountsProcessed: accounts.length,
         rawResults: allResults.length

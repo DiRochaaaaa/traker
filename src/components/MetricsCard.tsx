@@ -9,6 +9,7 @@ interface MetricsCardProps {
   format?: 'currency' | 'percentage' | 'number'
   icon?: 'revenue' | 'profit' | 'roas' | 'cpm' | 'cpa' | 'purchases'
   isHighPerformance?: boolean
+  isLoading?: boolean
   additionalData?: {
     faturamento?: number
   }
@@ -23,7 +24,7 @@ const iconMap = {
   purchases: TrendingUp
 }
 
-export function MetricsCard({ title, value, change, format = 'number', icon, isHighPerformance = false, additionalData }: MetricsCardProps) {
+export function MetricsCard({ title, value, change, format = 'number', icon, isHighPerformance = false, isLoading = false, additionalData }: MetricsCardProps) {
   const IconComponent = icon ? iconMap[icon] : DollarSign
 
   const formatValue = (val: string | number) => {
@@ -118,7 +119,7 @@ export function MetricsCard({ title, value, change, format = 'number', icon, isH
   }
 
   return (
-    <div className={`${getCardStyle()} rounded-lg shadow-xl p-6 transition-all duration-300`}>
+    <div className={`${getCardStyle()} rounded-lg shadow-xl p-6 transition-all duration-300 ${isLoading ? 'opacity-60' : ''}`}>
       {isHighPerformance && (
         <div className="flex items-center justify-center mb-3">
           <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full border bg-green-900/50 border-green-500/30">

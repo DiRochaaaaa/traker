@@ -11,6 +11,15 @@ module.exports = {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
       },
+      animation: {
+        "toast-progress": "toast-progress linear forwards",
+      },
+      keyframes: {
+        "toast-progress": {
+          "0%": { width: "100%" },
+          "100%": { width: "0%" },
+        },
+      },
     },
   },
   plugins: [],

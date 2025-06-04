@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Calendar, Filter, Search, TrendingUp, ShoppingBag, DollarSign, Eye, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { SkeletonCard, SkeletonTable } from './SkeletonCard'
 
 interface Venda {
   id: number
@@ -26,16 +27,26 @@ interface VendasStats {
   vendas_main: number
 }
 
+interface LoadingStates {
+  vendas: boolean
+  stats: boolean
+  isInitialLoad: boolean
+}
+
 export function VendasPage() {
   const [vendas, setVendas] = useState<Venda[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<LoadingStates>({
+    vendas: false,
+    stats: false,
+    isInitialLoad: true
+  })
   const [period, setPeriod] = useState<string>('today')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterTipo, setFilterTipo] = useState<string>('all')
   const [stats, setStats] = useState<VendasStats>({ total: 0, faturamento: 0, comissao: 0, vendas_main: 0 })
 
   const fetchVendas = useCallback(async (selectedPeriod: string) => {
-    setLoading(true)
+    setLoading(prev => ({ ...prev, vendas: true, stats: true }))
     try {
       const response = await fetch(`/api/vendas?period=${selectedPeriod}`)
       const result = await response.json()
@@ -47,7 +58,7 @@ export function VendasPage() {
     } catch (error) {
       console.error('Erro ao buscar vendas:', error)
     } finally {
-      setLoading(false)
+      setLoading(prev => ({ ...prev, vendas: false, stats: false, isInitialLoad: false }))
     }
   }, [])
 
@@ -149,45 +160,65 @@ export function VendasPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Total de Vendas</p>
-                <p className="text-2xl font-bold text-white">{stats.total}</p>
+          {loading.stats && loading.isInitialLoad ? (
+            // Mostrar skeletons apenas no primeiro carregamento
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : (
+            <>
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Total de Vendas</p>
+                    <p className={`text-2xl font-bold text-white ${loading.stats ? 'opacity-60' : ''}`}>
+                      {stats.total}
+                    </p>
+                  </div>
+                  <ShoppingBag className="h-8 w-8 text-blue-400" />
+                </div>
               </div>
-              <ShoppingBag className="h-8 w-8 text-blue-400" />
-            </div>
-          </div>
-          
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Vendas Principais</p>
-                <p className="text-2xl font-bold text-green-400">{stats.vendas_main}</p>
+              
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Vendas Principais</p>
+                    <p className={`text-2xl font-bold text-green-400 ${loading.stats ? 'opacity-60' : ''}`}>
+                      {stats.vendas_main}
+                    </p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-green-400" />
+                </div>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-400" />
-            </div>
-          </div>
 
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Comissão Total</p>
-                <p className="text-2xl font-bold text-green-400">{formatCurrency(stats.comissao)}</p>
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Comissão Total</p>
+                    <p className={`text-2xl font-bold text-green-400 ${loading.stats ? 'opacity-60' : ''}`}>
+                      {formatCurrency(stats.comissao)}
+                    </p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-green-400" />
+                </div>
               </div>
-              <DollarSign className="h-8 w-8 text-green-400" />
-            </div>
-          </div>
 
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Faturamento Total</p>
-                <p className="text-2xl font-bold text-blue-400">{formatCurrency(stats.faturamento)}</p>
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Faturamento Total</p>
+                    <p className={`text-2xl font-bold text-blue-400 ${loading.stats ? 'opacity-60' : ''}`}>
+                      {formatCurrency(stats.faturamento)}
+                    </p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-blue-400" />
+                </div>
               </div>
-              <DollarSign className="h-8 w-8 text-blue-400" />
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Filters */}
@@ -245,16 +276,13 @@ export function VendasPage() {
             <h3 className="text-base md:text-lg font-semibold text-white">
               Vendas Encontradas ({vendasFiltradas.length})
             </h3>
-            {loading && (
+            {loading.vendas && (
               <div className="text-blue-400 text-sm">Carregando...</div>
             )}
           </div>
 
-          {loading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto"></div>
-              <p className="text-gray-400 mt-2">Carregando vendas...</p>
-            </div>
+          {loading.vendas && loading.isInitialLoad ? (
+            <SkeletonTable />
           ) : vendasFiltradas.length === 0 ? (
             <div className="p-8 text-center text-gray-400">
               <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />

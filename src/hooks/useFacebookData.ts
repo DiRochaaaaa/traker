@@ -8,6 +8,8 @@ export interface FacebookCampaignData {
   effective_status?: string
   daily_budget?: string
   account_id: string
+  bid_strategy?: string
+  budget_optimization?: string
   insights: {
     data: Array<{
       spend: string
@@ -43,6 +45,8 @@ export interface CampaignMetrics {
   orderbumpCount: number
   campaign_id: string
   account_id: string
+  budgetType: 'CBO' | 'ABO' | 'UNKNOWN'
+  bidStrategy?: string
 }
 
 export interface PlataformaMetrics {
@@ -52,18 +56,62 @@ export interface PlataformaMetrics {
   comissao: number
 }
 
+export interface LoadingStates {
+  campaigns: boolean
+  vendas: boolean
+  metrics: boolean
+  isInitialLoad: boolean
+}
+
 export type DatePeriod = 'today' | 'yesterday' | 'last_7_days' | 'this_month'
 
 export function useFacebookData() {
   const [campaigns, setCampaigns] = useState<FacebookCampaignData[]>([])
   const [vendas, setVendas] = useState<Venda[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<LoadingStates>({
+    campaigns: false,
+    vendas: false,
+    metrics: false,
+    isInitialLoad: true
+  })
   const [error, setError] = useState<string | null>(null)
   const [selectedAccount, setSelectedAccount] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<DatePeriod>('today')
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [cacheHit, setCacheHit] = useState(false)
+  
+  // Cache para evitar requests desnecessários
+  const [cache, setCache] = useState<Map<string, { data: unknown; timestamp: number }>>(new Map())
+  const CACHE_DURATION = 60000 // 1 minuto para melhor performance
+
+  const getCacheKey = (type: 'campaigns' | 'vendas', account?: string, period?: DatePeriod) => {
+    return `${type}_${account || 'all'}_${period || 'today'}`
+  }
+
+  const getCachedData = (key: string) => {
+    const cached = cache.get(key)
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      setCacheHit(true)
+      return cached.data
+    }
+    setCacheHit(false)
+    return null
+  }
+
+  const setCachedData = (key: string, data: unknown) => {
+    setCache(prev => new Map(prev.set(key, { data, timestamp: Date.now() })))
+  }
 
   const fetchCampaigns = useCallback(async (account: string = 'all', period: DatePeriod = 'today') => {
-    setLoading(true)
+    const cacheKey = getCacheKey('campaigns', account, period)
+    const cachedData = getCachedData(cacheKey)
+    
+    if (cachedData) {
+      setCampaigns(cachedData as FacebookCampaignData[])
+      return
+    }
+
+    setLoading(prev => ({ ...prev, campaigns: true }))
     setError(null)
     
     try {
@@ -75,14 +123,26 @@ export function useFacebookData() {
       }
       
       setCampaigns(result.data)
+      setCachedData(cacheKey, result.data)
+      setLastUpdate(new Date())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
-      setLoading(false)
+      setLoading(prev => ({ ...prev, campaigns: false, isInitialLoad: false }))
     }
-  }, [])
+  }, [cache])
 
   const fetchVendas = useCallback(async (period: DatePeriod = 'today') => {
+    const cacheKey = getCacheKey('vendas', undefined, period)
+    const cachedData = getCachedData(cacheKey)
+    
+    if (cachedData) {
+      setVendas(cachedData as Venda[])
+      return
+    }
+
+    setLoading(prev => ({ ...prev, vendas: true }))
+    
     try {
       console.log(`🔍 Buscando vendas para período: ${period}`)
       const response = await fetch(`/api/vendas?period=${period}`)
@@ -126,6 +186,8 @@ export function useFacebookData() {
         }
         
         setVendas(result.data)
+        setCachedData(cacheKey, result.data)
+        setLastUpdate(new Date())
       } else {
         console.error('❌ Failed to fetch vendas:', result.error)
         setVendas([]) // Limpar vendas em caso de erro
@@ -133,8 +195,29 @@ export function useFacebookData() {
     } catch (err) {
       console.error('💥 Error fetching vendas:', err)
       setVendas([]) // Limpar vendas em caso de erro
+    } finally {
+      setLoading(prev => ({ ...prev, vendas: false }))
     }
-  }, [])
+  }, [cache])
+
+  // Carregamento paralelo e progressivo
+  const fetchData = useCallback(async (account: string = 'all', period: DatePeriod = 'today') => {
+    setLoading(prev => ({ ...prev, metrics: true }))
+    
+    // Fetch em paralelo para velocidade máxima
+    await Promise.all([
+      fetchCampaigns(account, period),
+      fetchVendas(period)
+    ])
+    
+    setLoading(prev => ({ ...prev, metrics: false }))
+  }, [fetchCampaigns, fetchVendas])
+
+  // Smart refresh que mantém dados enquanto atualiza
+  const smartRefresh = useCallback(async () => {
+    // Não mostrar loading principal, apenas flags específicas
+    await fetchData(selectedAccount, selectedPeriod)
+  }, [fetchData, selectedAccount, selectedPeriod])
 
   // Função para normalizar valores monetários (aceita tanto 10.00 quanto 10,00)
   const parseMonetaryValue = (value: string | null | number): number => {
@@ -184,6 +267,33 @@ export function useFacebookData() {
   }
 
   // 🎯 Removidas funções do Facebook API - agora usamos apenas dados do Supabase
+
+  // Função para determinar se a campanha é CBO ou ABO
+  const determineBudgetType = (campaign: FacebookCampaignData): 'CBO' | 'ABO' | 'UNKNOWN' => {
+    try {
+      // Se budget_optimization está definido, usar essa informação primeiro
+      if (campaign.budget_optimization) {
+        const budgetOpt = campaign.budget_optimization.toUpperCase()
+        if (budgetOpt === 'CBO' || budgetOpt.includes('CAMPAIGN')) {
+          return 'CBO'
+        }
+        if (budgetOpt === 'ABO' || budgetOpt.includes('ADSET')) {
+          return 'ABO'
+        }
+      }
+      
+      // Se a campanha tem daily_budget definido e > 0, provavelmente é CBO
+      if (campaign.daily_budget && parseFloat(campaign.daily_budget) > 0) {
+        return 'CBO'
+      }
+      
+      // Por padrão, assumir ABO (mais comum)
+      return 'ABO'
+    } catch (error) {
+      console.warn('⚠️ Erro ao determinar tipo de budget:', error)
+      return 'UNKNOWN'
+    }
+  }
 
   const processMetrics = useCallback((): CampaignMetrics[] => {
     // Função auxiliar para criar métricas de campanha
@@ -250,7 +360,9 @@ export function useFacebookData() {
         upsellCount,
         orderbumpCount,
         campaign_id: campaign.id,
-        account_id: campaign.account_id
+        account_id: campaign.account_id,
+        budgetType: determineBudgetType(campaign),
+        bidStrategy: campaign.bid_strategy
       }
       
       if (campaignVendas.length > 0) {
@@ -334,9 +446,19 @@ export function useFacebookData() {
     
     const allMetrics = [...facebookCampaignMetrics, ...orphanCampaignMetrics]
     
-    console.log(`📊 Total de métricas processadas: ${allMetrics.length} (${facebookCampaignMetrics.length} Facebook + ${orphanCampaignMetrics.length} órfãs)`)
+    // Filtrar apenas campanhas com gasto > 0 OU que tenham vendas
+    const filteredMetrics = allMetrics.filter(metric => {
+      const hasSpend = metric.valorUsado > 0
+      const hasSales = metric.compras > 0 || metric.faturamento > 0
+      
+      // Manter campanhas que têm gasto OU vendas
+      return hasSpend || hasSales
+    })
     
-    return allMetrics
+    console.log(`📊 Total de métricas processadas: ${allMetrics.length} (${facebookCampaignMetrics.length} Facebook + ${orphanCampaignMetrics.length} órfãs)`)
+    console.log(`📊 Métricas após filtro: ${filteredMetrics.length} (removidas: ${allMetrics.length - filteredMetrics.length})`)
+    
+    return filteredMetrics
   }, [campaigns, vendas])
 
   const getTotals = useCallback((metrics: CampaignMetrics[]) => {
@@ -433,16 +555,19 @@ export function useFacebookData() {
     error,
     selectedAccount,
     selectedPeriod,
+    lastUpdate,
+    cacheHit,
     setSelectedAccount: updateAccount,
     setSelectedPeriod: updatePeriod,
     fetchCampaigns,
     fetchVendas,
+    fetchData,
     processMetrics,
     getTotals,
     getPlataformaMetrics,
     refresh: () => {
-      fetchCampaigns(selectedAccount, selectedPeriod)
-      fetchVendas(selectedPeriod)
-    }
+      fetchData(selectedAccount, selectedPeriod)
+    },
+    smartRefresh
   }
 } 
