@@ -186,8 +186,13 @@ export function Dashboard() {
             {/* Summary Stats */}
             <div className="mb-4 md:mb-6 bg-gray-800 border border-gray-700 rounded-lg p-4">
               <h3 className="text-base md:text-lg font-semibold text-white mb-2">Resumo</h3>
-              <div className="text-sm text-gray-300">
-                <span className="font-medium">{metrics.length}</span> campanhas com gasto maior que R$ 0,00
+              <div className="text-sm text-gray-300 space-y-1">
+                <div><span className="font-medium">{metrics.length}</span> campanhas com gasto maior que R$ 0,00</div>
+                <div className="text-xs text-gray-400">
+                  • <strong>Compras:</strong> Apenas vendas principais (main)<br/>
+                  • <strong>Faturamento:</strong> Soma total (main + orderbump + upsell)<br/>
+                  • <strong>CPA:</strong> Baseado em conversões reais (vendas main)
+                </div>
               </div>
             </div>
 
@@ -212,7 +217,7 @@ export function Dashboard() {
                 icon="roas"
               />
               <MetricsCard
-                title="Total de Compras"
+                title="Compras Principais"
                 value={totals.compras}
                 format="number"
                 icon="purchases"
@@ -244,6 +249,34 @@ export function Dashboard() {
                 value={totals.dailyBudget}
                 format="currency"
                 icon="revenue"
+              />
+            </div>
+
+            {/* Upsell/Orderbump Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+              <MetricsCard
+                title="Total Upsells"
+                value={totals.upsellCount}
+                format="number"
+                icon="purchases"
+              />
+              <MetricsCard
+                title="Total Orderbumps"
+                value={totals.orderbumpCount}
+                format="number"
+                icon="purchases"
+              />
+              <MetricsCard
+                title="Taxa de Upsell"
+                value={totals.compras > 0 ? (totals.upsellCount / totals.compras) * 100 : 0}
+                format="percentage"
+                icon="roas"
+              />
+              <MetricsCard
+                title="Taxa de Orderbump"
+                value={totals.compras > 0 ? (totals.orderbumpCount / totals.compras) * 100 : 0}
+                format="percentage"
+                icon="roas"
               />
             </div>
 

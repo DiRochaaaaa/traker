@@ -37,6 +37,8 @@ export interface CampaignMetrics {
   faturamento: number
   roas: number
   lucro: number
+  upsellCount: number
+  orderbumpCount: number
   campaign_id: string
   account_id: string
 }
@@ -120,26 +122,48 @@ export function useFacebookData() {
       // Buscar vendas para esta campanha
       const campaignVendas = vendas.filter(venda => venda.campaign_id === campaign.id)
       
-      // Calcular faturamento total das vendas
-      const faturamento = campaignVendas.reduce((total, venda) => {
+      // Separar vendas por tipo
+      const vendasMain = campaignVendas.filter(venda => {
+        const tipo = venda.tipo?.toLowerCase() || ''
+        return tipo === 'main' || tipo === '' || !tipo.includes('upsell') && !tipo.includes('orderbump') && !tipo.includes('bump')
+      })
+      
+      const vendasUpsell = campaignVendas.filter(venda => {
+        const tipo = venda.tipo?.toLowerCase() || ''
+        return tipo.includes('upsell')
+      })
+      
+      const vendasOrderbump = campaignVendas.filter(venda => {
+        const tipo = venda.tipo?.toLowerCase() || ''
+        return tipo.includes('orderbump') || tipo.includes('order-bump') || tipo.includes('bump')
+      })
+      
+      // Calcular faturamento total (main + orderbump + upsell)
+      const faturamentoTotal = campaignVendas.reduce((total, venda) => {
         const valor = parseFloat(venda.faturamento_bruto || '0')
         return total + valor
       }, 0)
       
       // Calcular comissões totais
-      const comissoes = campaignVendas.reduce((total, venda) => {
+      const comissoesTotal = campaignVendas.reduce((total, venda) => {
         const comissao = parseFloat(venda.comissao || '0')
         return total + comissao
       }, 0)
       
-      // Calcular ROAS (Return on Ad Spend)
-      const roas = spend > 0 ? faturamento / spend : 0
+      // Contar apenas vendas MAIN para conversões e CPA
+      const comprasMain = vendasMain.length
+      const upsellCount = vendasUpsell.length
+      const orderbumpCount = vendasOrderbump.length
       
-      // Calcular Lucro (Faturamento - Gasto em Ads - Comissões)
-      const lucro = faturamento - spend - comissoes
+      // Calcular ROAS (Return on Ad Spend) baseado no faturamento total
+      const roas = spend > 0 ? faturamentoTotal / spend : 0
       
-      // Calcular CPA alternativo se não estiver disponível
-      const finalCpa = cpa || (spend / Math.max(purchases || campaignVendas.length, 1))
+      // Calcular Lucro (Faturamento total - Gasto em Ads - Comissões)
+      const lucro = faturamentoTotal - spend - comissoesTotal
+      
+      // CPA baseado apenas em vendas MAIN (conversões reais)
+      const finalCompras = purchases || comprasMain
+      const finalCpa = cpa || (spend / Math.max(finalCompras, 1))
       
       return {
         name: campaign.name,
@@ -147,11 +171,13 @@ export function useFacebookData() {
         dailyBudget: parseFloat(campaign.daily_budget || '0') / 100, // Facebook retorna em centavos
         valorUsado: spend,
         cpm,
-        compras: purchases || campaignVendas.length, // Usar dados do FB ou contar vendas
-        cpa: finalCpa,
-        faturamento,
+        compras: finalCompras, // Apenas vendas main
+        cpa: finalCpa, // CPA baseado em vendas main
+        faturamento: faturamentoTotal, // Soma de todos os tipos
         roas,
         lucro,
+        upsellCount,
+        orderbumpCount,
         campaign_id: campaign.id,
         account_id: campaign.account_id
       }
@@ -165,6 +191,8 @@ export function useFacebookData() {
       compras: totals.compras + metric.compras,
       faturamento: totals.faturamento + metric.faturamento,
       lucro: totals.lucro + metric.lucro,
+      upsellCount: totals.upsellCount + metric.upsellCount,
+      orderbumpCount: totals.orderbumpCount + metric.orderbumpCount,
       cpm: metrics.length > 0 ? totals.cpm + metric.cpm : 0,
       cpa: metrics.length > 0 ? totals.cpa + metric.cpa : 0,
       roas: 0 // Será calculado depois
@@ -174,6 +202,8 @@ export function useFacebookData() {
       compras: 0,
       faturamento: 0,
       lucro: 0,
+      upsellCount: 0,
+      orderbumpCount: 0,
       cpm: 0,
       cpa: 0,
       roas: 0
