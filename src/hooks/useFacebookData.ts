@@ -35,6 +35,7 @@ export interface CampaignMetrics {
   compras: number
   cpa: number
   faturamento: number
+  comissao: number
   ticketMedio: number
   roas: number
   lucro: number
@@ -42,6 +43,13 @@ export interface CampaignMetrics {
   orderbumpCount: number
   campaign_id: string
   account_id: string
+}
+
+export interface PlataformaMetrics {
+  plataforma: string
+  vendas: number
+  faturamento: number
+  comissao: number
 }
 
 export type DatePeriod = 'today' | 'yesterday' | 'last_7_days' | 'this_month'
@@ -76,118 +84,260 @@ export function useFacebookData() {
 
   const fetchVendas = useCallback(async (period: DatePeriod = 'today') => {
     try {
+      console.log(`🔍 Buscando vendas para período: ${period}`)
       const response = await fetch(`/api/vendas?period=${period}`)
       const result = await response.json()
       
       if (result.success) {
+        console.log(`📊 Vendas encontradas: ${result.data.length} vendas`)
+        console.log(`📅 Período: ${period} | Range: ${JSON.stringify(result.dateRange)}`)
+        
+        // Log detalhado das vendas
+        if (result.data.length > 0) {
+          const vendasPorCampanha = result.data.reduce((acc: Record<string, any[]>, venda: any) => {
+            const campaignId = venda.campaign_id || 'sem_campaign_id'
+            if (!acc[campaignId]) acc[campaignId] = []
+            acc[campaignId].push(venda)
+            return acc
+          }, {})
+          
+          console.log('📊 Vendas agrupadas por campaign_id:')
+          Object.entries(vendasPorCampanha).forEach(([campaignId, vendas]) => {
+            const faturamentoTotal = (vendas as any[]).reduce((total: number, v: any) => total + parseMonetaryValue(v.faturamento_bruto), 0)
+            console.log(`  📈 Campaign ${campaignId}: ${(vendas as any[]).length} vendas, R$ ${faturamentoTotal.toFixed(2)}`)
+          })
+          
+          const primeiraVenda = result.data[0]
+          console.log('🔍 Primeira venda detalhada:', {
+            produto: primeiraVenda?.produto,
+            faturamento: primeiraVenda?.faturamento_bruto,
+            campaign_id: primeiraVenda?.campaign_id,
+            created_at: primeiraVenda?.created_at,
+            tipo: primeiraVenda?.tipo
+          })
+          
+          // Calcular faturamento total para debug
+          const faturamentoTotalGeral = result.data.reduce((total: number, venda: any) => {
+            return total + parseMonetaryValue(venda.faturamento_bruto)
+          }, 0)
+          console.log(`💰 FATURAMENTO TOTAL CALCULADO: R$ ${faturamentoTotalGeral.toFixed(2)}`)
+        } else {
+          console.warn(`⚠️ Nenhuma venda encontrada para o período ${period}`)
+        }
+        
         setVendas(result.data)
+      } else {
+        console.error('❌ Failed to fetch vendas:', result.error)
+        setVendas([]) // Limpar vendas em caso de erro
       }
     } catch (err) {
-      console.error('Error fetching vendas:', err)
+      console.error('💥 Error fetching vendas:', err)
+      setVendas([]) // Limpar vendas em caso de erro
     }
   }, [])
 
-  // Função para extrair valores das actions do Facebook
-  const getActionValue = (actions: Array<{action_type: string, value: string}> | undefined, actionType: string): number => {
-    if (!actions) return 0
-    const action = actions.find(a => a.action_type === actionType)
-    return action ? parseInt(action.value) || 0 : 0
+  // Função para normalizar valores monetários (aceita tanto 10.00 quanto 10,00)
+  const parseMonetaryValue = (value: string | null | number): number => {
+    if (!value && value !== 0) {
+      return 0
+    }
+    
+    // Se já é um número, retorna direto
+    if (typeof value === 'number') {
+      return value
+    }
+    
+    // Converte para string e limpa
+    const cleanValue = value?.toString().trim() || ''
+    
+    if (!cleanValue) {
+      return 0
+    }
+    
+    // Remove símbolos de moeda (R$, $, etc.)
+    let processedValue = cleanValue.replace(/[R$\s]/g, '')
+    
+    // Se está vazio após limpeza, retorna 0
+    if (!processedValue) {
+      return 0
+    }
+    
+    // Trata casos com vírgula como separador decimal (formato brasileiro)
+    // Se tem vírgula E ponto, assume que vírgula é separador decimal
+    if (processedValue.includes(',') && processedValue.includes('.')) {
+      // Exemplo: 1.234,56 -> remove pontos, troca vírgula por ponto
+      processedValue = processedValue.replace(/\./g, '').replace(',', '.')
+    } else if (processedValue.includes(',')) {
+      // Apenas vírgula, assume que é separador decimal
+      processedValue = processedValue.replace(',', '.')
+    }
+    
+    const result = parseFloat(processedValue)
+    
+    // Log apenas se houver problema no parsing
+    if (isNaN(result)) {
+      console.warn(`⚠️ Erro ao fazer parse do valor monetário: "${value}" -> "${processedValue}"`)
+      return 0
+    }
+    
+    return result
   }
 
-  // Função para extrair custo por ação
-  const getCostPerAction = (costPerActions: Array<{action_type: string, value: string}> | undefined, actionType: string): number => {
-    if (!costPerActions) return 0
-    const costAction = costPerActions.find(a => a.action_type === actionType)
-    return costAction ? parseFloat(costAction.value) || 0 : 0
-  }
+  // 🎯 Removidas funções do Facebook API - agora usamos apenas dados do Supabase
 
   const processMetrics = useCallback((): CampaignMetrics[] => {
-    return campaigns.map(campaign => {
+    console.log('🔄 Processando métricas...')
+    console.log(`📊 Campanhas do Facebook: ${campaigns.length}`)
+    console.log(`💰 Vendas no Supabase: ${vendas.length}`)
+    
+    // Log dos campaign_ids disponíveis
+    const campaignIds = campaigns.map(c => c.id)
+    const vendasCampaignIds = [...new Set(vendas.map(v => v.campaign_id).filter(Boolean))]
+    
+    console.log('🎯 Campaign IDs das campanhas Facebook:', campaignIds)
+    console.log('🎯 Campaign IDs das vendas Supabase:', vendasCampaignIds)
+    
+    // Verificar correlação
+    const matches = vendasCampaignIds.filter(id => campaignIds.includes(id))
+    const vendaOrfas = vendasCampaignIds.filter(id => !campaignIds.includes(id))
+    
+    console.log('✅ Matches encontrados:', matches)
+    if (vendaOrfas.length > 0) {
+      console.log('⚠️ Vendas sem campanha correspondente:', vendaOrfas)
+      console.log(`⚠️ ${vendaOrfas.length} campaign_ids de vendas não encontrados nas campanhas do Facebook`)
+    }
+    
+    // Processar campanhas do Facebook
+    const facebookCampaignMetrics = campaigns.map(campaign => {
       const insights = campaign.insights?.data?.[0]
       const spend = parseFloat(insights?.spend || '0')
       const cpm = parseFloat(insights?.cpm || '0')
       
-      // Extrair compras das actions
-      // Tipos comuns de conversão: 'purchase', 'app_install', 'lead', 'complete_registration'
-      const purchases = getActionValue(insights?.actions, 'purchase') || 
-                       getActionValue(insights?.actions, 'app_install') ||
-                       getActionValue(insights?.actions, 'lead') ||
-                       getActionValue(insights?.actions, 'complete_registration')
-      
-      // Extrair CPA das cost_per_action_type
-      const cpa = getCostPerAction(insights?.cost_per_action_type, 'purchase') ||
-                  getCostPerAction(insights?.cost_per_action_type, 'app_install') ||
-                  getCostPerAction(insights?.cost_per_action_type, 'lead') ||
-                  getCostPerAction(insights?.cost_per_action_type, 'complete_registration')
-      
       // Buscar vendas para esta campanha
-      const campaignVendas = vendas.filter(venda => venda.campaign_id === campaign.id)
+      const campaignVendas = vendas.filter(venda => venda.campaign_id && venda.campaign_id === campaign.id)
       
-      // Separar vendas por tipo
-      const vendasMain = campaignVendas.filter(venda => {
-        const tipo = venda.tipo?.toLowerCase() || ''
-        return tipo === 'main' || tipo === '' || !tipo.includes('upsell') && !tipo.includes('orderbump') && !tipo.includes('bump')
-      })
-      
-      const vendasUpsell = campaignVendas.filter(venda => {
-        const tipo = venda.tipo?.toLowerCase() || ''
-        return tipo.includes('upsell')
-      })
-      
-      const vendasOrderbump = campaignVendas.filter(venda => {
-        const tipo = venda.tipo?.toLowerCase() || ''
-        return tipo.includes('orderbump') || tipo.includes('order-bump') || tipo.includes('bump')
-      })
-      
-      // Calcular faturamento total (main + orderbump + upsell)
-      const faturamentoTotal = campaignVendas.reduce((total, venda) => {
-        const valor = parseFloat(venda.faturamento_bruto || '0')
-        return total + valor
-      }, 0)
-      
-      // Calcular comissões totais
-      const comissoesTotal = campaignVendas.reduce((total, venda) => {
-        const comissao = parseFloat(venda.comissao || '0')
-        return total + comissao
-      }, 0)
-      
-      // Contar apenas vendas MAIN para conversões e CPA
-      const comprasMain = vendasMain.length
-      const upsellCount = vendasUpsell.length
-      const orderbumpCount = vendasOrderbump.length
-      
-      // Calcular ROAS (Return on Ad Spend) baseado no faturamento total
-      const roas = spend > 0 ? faturamentoTotal / spend : 0
-      
-      // Calcular Lucro (Faturamento total - Gasto em Ads - Comissões)
-      const lucro = faturamentoTotal - spend - comissoesTotal
-      
-      // CPA baseado apenas em vendas MAIN (conversões reais)
-      const finalCompras = purchases || comprasMain
-      const finalCpa = cpa || (spend / Math.max(finalCompras, 1))
-      
-      // Ticket médio = faturamento total / vendas main
-      const ticketMedio = finalCompras > 0 ? faturamentoTotal / finalCompras : 0
-      
-      return {
-        name: campaign.name,
-        status: campaign.effective_status || campaign.status,
-        dailyBudget: parseFloat(campaign.daily_budget || '0') / 100, // Facebook retorna em centavos
-        valorUsado: spend,
-        cpm,
-        compras: finalCompras, // Apenas vendas main
-        cpa: finalCpa, // CPA baseado em vendas main
-        faturamento: faturamentoTotal, // Soma de todos os tipos
-        ticketMedio, // Faturamento total / vendas main
-        roas,
-        lucro,
-        upsellCount,
-        orderbumpCount,
-        campaign_id: campaign.id,
-        account_id: campaign.account_id
+      // Log detalhado para cada campanha
+      if (campaignVendas.length > 0) {
+        console.log(`📈 Campanha "${campaign.name}" (${campaign.id}):`)
+        console.log(`  💰 Gasto Facebook: R$ ${spend.toFixed(2)}`)
+        console.log(`  🛒 Vendas encontradas: ${campaignVendas.length}`)
+        
+        campaignVendas.forEach((venda, i) => {
+          console.log(`    ${i+1}. ${venda.produto} - R$ ${venda.faturamento_bruto} (${venda.tipo || 'main'})`)
+        })
+      } else if (spend > 0) {
+        console.log(`⚠️ Campanha "${campaign.name}" (${campaign.id}): Gasto R$ ${spend.toFixed(2)} mas sem vendas associadas`)
       }
+      
+      return createCampaignMetrics(campaign, campaignVendas, spend, cpm, 0, 0)
     })
+    
+    // Processar campanhas órfãs (que têm vendas mas não aparecem no Facebook)
+    const orphanCampaignMetrics = vendaOrfas.map(campaignId => {
+      const campaignVendas = vendas.filter(venda => venda.campaign_id === campaignId)
+      
+      console.log(`🔍 Campanha órfã "${campaignId}":`)
+      console.log(`  💰 Gasto Facebook: R$ 0.00 (não encontrada na API)`)
+      console.log(`  🛒 Vendas encontradas: ${campaignVendas.length}`)
+      
+      campaignVendas.forEach((venda, i) => {
+        console.log(`    ${i+1}. ${venda.produto} - R$ ${venda.faturamento_bruto} (${venda.tipo || 'main'})`)
+      })
+      
+      // Criar campanha fictícia para as vendas órfãs
+      const orphanCampaign = {
+        id: campaignId,
+        name: `Campanha ${campaignId} (Órfã)`,
+        status: 'UNKNOWN',
+        effective_status: 'UNKNOWN',
+        daily_budget: '0',
+        account_id: 'unknown',
+        insights: { data: [] }
+      }
+      
+      return createCampaignMetrics(orphanCampaign, campaignVendas, 0, 0, 0, 0)
+    })
+    
+    const allMetrics = [...facebookCampaignMetrics, ...orphanCampaignMetrics]
+    
+    console.log(`📊 Total de métricas processadas: ${allMetrics.length} (${facebookCampaignMetrics.length} Facebook + ${orphanCampaignMetrics.length} órfãs)`)
+    
+    return allMetrics
   }, [campaigns, vendas])
+  
+  // Função auxiliar para criar métricas de campanha
+  const createCampaignMetrics = (campaign: any, campaignVendas: any[], spend: number, cpm: number, purchases: number, cpa: number): CampaignMetrics => {
+    // Separar vendas por tipo
+    const vendasMain = campaignVendas.filter(venda => {
+      const tipo = venda.tipo?.toLowerCase() || ''
+      return tipo === 'main' || tipo === '' || !tipo.includes('upsell') && !tipo.includes('orderbump') && !tipo.includes('bump')
+    })
+    
+    const vendasUpsell = campaignVendas.filter(venda => {
+      const tipo = venda.tipo?.toLowerCase() || ''
+      return tipo.includes('upsell')
+    })
+    
+    const vendasOrderbump = campaignVendas.filter(venda => {
+      const tipo = venda.tipo?.toLowerCase() || ''
+      return tipo.includes('orderbump') || tipo.includes('order-bump') || tipo.includes('bump')
+    })
+    
+    // Calcular faturamento total (main + orderbump + upsell)
+    const faturamentoTotal = campaignVendas.reduce((total, venda) => {
+      const valor = parseMonetaryValue(venda.faturamento_bruto || null)
+      return total + valor
+    }, 0)
+    
+    // Calcular comissões totais
+    const comissoesTotal = campaignVendas.reduce((total, venda) => {
+      const comissao = parseMonetaryValue(venda.comissao || null)
+      return total + comissao
+    }, 0)
+    
+    // Contar apenas vendas MAIN para conversões e CPA
+    const comprasMain = vendasMain.length
+    const upsellCount = vendasUpsell.length
+    const orderbumpCount = vendasOrderbump.length
+    
+    // Calcular ROAS (Return on Ad Spend) baseado no faturamento total
+    const roas = spend > 0 ? faturamentoTotal / spend : (faturamentoTotal > 0 ? Infinity : 0)
+    
+    // Calcular Lucro (Comissão - Valor usado)
+    const lucro = comissoesTotal - spend
+    
+    // 🎯 USAR APENAS DADOS DO SUPABASE (tempo real)
+    const finalCompras = comprasMain // Vendas principais do Supabase
+    const finalCpa = spend > 0 && finalCompras > 0 ? spend / finalCompras : 0
+    
+    // Ticket médio = faturamento total / vendas main
+    const ticketMedio = finalCompras > 0 ? faturamentoTotal / finalCompras : 0
+    
+    const metrics = {
+      name: campaign.name,
+      status: campaign.effective_status || campaign.status,
+      dailyBudget: parseFloat(campaign.daily_budget || '0') / 100, // Facebook retorna em centavos
+      valorUsado: spend,
+      cpm,
+      compras: finalCompras, // 🎯 SUPABASE: Vendas principais em tempo real
+      cpa: finalCpa, // 🎯 SUPABASE: CPA baseado em vendas reais
+      faturamento: faturamentoTotal, // Soma de todos os tipos
+      comissao: comissoesTotal, // Total de comissões
+      ticketMedio, // Faturamento total / vendas main
+      roas,
+      lucro,
+      upsellCount,
+      orderbumpCount,
+      campaign_id: campaign.id,
+      account_id: campaign.account_id
+    }
+    
+    if (campaignVendas.length > 0) {
+      console.log(`  📊 Métricas calculadas (SUPABASE): ${finalCompras} compras, ROAS ${roas === Infinity ? '∞' : roas.toFixed(2)}, Lucro R$ ${lucro.toFixed(2)}`)
+    }
+    
+    return metrics
+  }
 
   const getTotals = useCallback((metrics: CampaignMetrics[]) => {
     const totals = metrics.reduce((acc, metric) => ({
@@ -195,6 +345,7 @@ export function useFacebookData() {
       valorUsado: acc.valorUsado + metric.valorUsado,
       compras: acc.compras + metric.compras,
       faturamento: acc.faturamento + metric.faturamento,
+      comissao: acc.comissao + metric.comissao,
       lucro: acc.lucro + metric.lucro,
       upsellCount: acc.upsellCount + metric.upsellCount,
       orderbumpCount: acc.orderbumpCount + metric.orderbumpCount,
@@ -207,6 +358,7 @@ export function useFacebookData() {
       valorUsado: 0,
       compras: 0,
       faturamento: 0,
+      comissao: 0,
       lucro: 0,
       upsellCount: 0,
       orderbumpCount: 0,
@@ -226,6 +378,37 @@ export function useFacebookData() {
       roas: totals.valorUsado > 0 ? totals.faturamento / totals.valorUsado : 0
     }
   }, [])
+
+  const getPlataformaMetrics = useCallback((): PlataformaMetrics[] => {
+    // Agrupar vendas por plataforma
+    const plataformasMap = vendas.reduce((acc, venda) => {
+      const plataforma = venda.plataforma || 'Não informado'
+      if (!acc[plataforma]) {
+        acc[plataforma] = {
+          plataforma,
+          vendas: 0,
+          faturamento: 0,
+          comissao: 0
+        }
+      }
+      
+      // Contar apenas vendas main para o número de vendas
+      const tipo = venda.tipo?.toLowerCase() || ''
+      const isMainSale = tipo === 'main' || tipo === '' || (!tipo.includes('upsell') && !tipo.includes('orderbump') && !tipo.includes('bump'))
+      
+      if (isMainSale) {
+        acc[plataforma].vendas += 1
+      }
+      
+      // Somar todo o faturamento (main + upsell + orderbump)
+      acc[plataforma].faturamento += parseMonetaryValue(venda.faturamento_bruto || null)
+      acc[plataforma].comissao += parseMonetaryValue(venda.comissao || null)
+      
+      return acc
+    }, {} as Record<string, PlataformaMetrics>)
+    
+    return Object.values(plataformasMap).sort((a, b) => b.faturamento - a.faturamento)
+  }, [vendas])
 
   const updatePeriod = useCallback((period: DatePeriod) => {
     setSelectedPeriod(period)
@@ -256,6 +439,7 @@ export function useFacebookData() {
     fetchVendas,
     processMetrics,
     getTotals,
+    getPlataformaMetrics,
     refresh: () => {
       fetchCampaigns(selectedAccount, selectedPeriod)
       fetchVendas(selectedPeriod)

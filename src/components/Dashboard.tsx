@@ -1,11 +1,13 @@
 'use client'
 
-import { useFacebookData } from '@/hooks/useFacebookData'
+import { useFacebookData, type PlataformaMetrics } from '@/hooks/useFacebookData'
 import { MetricsCard } from './MetricsCard'
 import { CampaignsTable } from './CampaignsTable'
 import { DateSelector } from './DateSelector'
-import { RefreshCw, Filter, TestTube } from 'lucide-react'
+import { DebugVendas } from './DebugVendas'
+import { RefreshCw, Filter, TestTube, ShoppingBag } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 
 export function Dashboard() {
   const [testResults, setTestResults] = useState<{
@@ -26,6 +28,7 @@ export function Dashboard() {
     setSelectedPeriod,
     processMetrics,
     getTotals,
+    getPlataformaMetrics,
     refresh
   } = useFacebookData()
 
@@ -48,6 +51,7 @@ export function Dashboard() {
 
   const metrics = useMemo(() => processMetrics(), [processMetrics])
   const totals = useMemo(() => getTotals(metrics), [metrics, getTotals])
+  const plataformaMetrics = useMemo(() => getPlataformaMetrics(), [getPlataformaMetrics])
 
   if (error) {
     return (
@@ -79,6 +83,13 @@ export function Dashboard() {
               <p className="text-gray-400 mt-1 text-sm md:text-base">Acompanhe o desempenho das suas campanhas em tempo real</p>
             </div>
             <div className="flex items-center space-x-2 justify-center md:justify-end">
+              <Link
+                href="/vendas"
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm md:text-base"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                <span>Ver Vendas</span>
+              </Link>
               <button
                 onClick={testConnectivity}
                 disabled={testLoading}
@@ -137,6 +148,8 @@ export function Dashboard() {
           />
         </div>
 
+
+
         {/* Account Filter */}
         <div className="mb-4 md:mb-6">
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
@@ -186,8 +199,8 @@ export function Dashboard() {
             {/* Main Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
               <MetricsCard
-                title="Faturamento Total"
-                value={totals.faturamento}
+                title="Comissão Total"
+                value={totals.comissao}
                 format="currency"
                 icon="revenue"
               />
@@ -214,6 +227,12 @@ export function Dashboard() {
             {/* Secondary Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
               <MetricsCard
+                title="Faturamento Total"
+                value={totals.faturamento}
+                format="currency"
+                icon="revenue"
+              />
+              <MetricsCard
                 title="Valor Investido"
                 value={totals.valorUsado}
                 format="currency"
@@ -224,12 +243,6 @@ export function Dashboard() {
                 value={totals.ticketMedio}
                 format="currency"
                 icon="revenue"
-              />
-              <MetricsCard
-                title="CPM Médio"
-                value={totals.cpm}
-                format="currency"
-                icon="cpm"
               />
               <MetricsCard
                 title="CPA Médio"
@@ -266,6 +279,57 @@ export function Dashboard() {
                 icon="roas"
               />
             </div>
+
+            {/* Platform Metrics */}
+            {plataformaMetrics.length > 0 && (
+              <div className="mb-6 md:mb-8">
+                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6">
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-4">Vendas por Plataforma</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-700">
+                          <th className="text-left text-gray-300 py-3 px-2">Plataforma</th>
+                          <th className="text-right text-gray-300 py-3 px-2">Vendas</th>
+                          <th className="text-right text-gray-300 py-3 px-2">Faturamento</th>
+                          <th className="text-right text-gray-300 py-3 px-2">Comissão</th>
+                          <th className="text-right text-gray-300 py-3 px-2">Ticket Médio</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {plataformaMetrics.map((plataforma, index) => (
+                          <tr key={index} className="border-b border-gray-700/50">
+                            <td className="py-3 px-2 text-white font-medium">{plataforma.plataforma}</td>
+                            <td className="py-3 px-2 text-right text-gray-300">{plataforma.vendas}</td>
+                            <td className="py-3 px-2 text-right text-green-400 font-medium">
+                              {new Intl.NumberFormat('pt-BR', { 
+                                style: 'currency', 
+                                currency: 'BRL' 
+                              }).format(plataforma.faturamento)}
+                            </td>
+                            <td className="py-3 px-2 text-right text-orange-400">
+                              {new Intl.NumberFormat('pt-BR', { 
+                                style: 'currency', 
+                                currency: 'BRL' 
+                              }).format(plataforma.comissao)}
+                            </td>
+                            <td className="py-3 px-2 text-right text-blue-400">
+                              {plataforma.vendas > 0 
+                                ? new Intl.NumberFormat('pt-BR', { 
+                                    style: 'currency', 
+                                    currency: 'BRL' 
+                                  }).format(plataforma.faturamento / plataforma.vendas)
+                                : 'R$ 0,00'
+                              }
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Campaigns Table */}
             <CampaignsTable campaigns={metrics} />
