@@ -5,8 +5,6 @@ import { MetricsCard } from './MetricsCard'
 import { CampaignsTable } from './CampaignsTable'
 import { DateSelector } from './DateSelector'
 import { ColorConfigModal } from './ColorConfigModal'
-import { SkeletonCard, SkeletonTable } from './SkeletonCard'
-import { PerformanceIndicator } from './PerformanceIndicator'
 import { RefreshCw, Filter, TestTube, ShoppingBag, Settings } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -27,15 +25,12 @@ export function Dashboard() {
     error,
     selectedAccount,
     selectedPeriod,
-    lastUpdate,
-    cacheHit,
     setSelectedAccount,
     setSelectedPeriod,
     processMetrics,
     getTotals,
     getPlataformaMetrics,
-    refresh,
-    smartRefresh
+    refresh
   } = useFacebookData()
 
   const testConnectivity = async () => {
@@ -109,7 +104,7 @@ export function Dashboard() {
                   <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard Meta Ads</h1>
                   <p className="text-gray-400 mt-1 text-sm md:text-base">Acompanhe o desempenho das suas campanhas em tempo real</p>
                 </div>
-                {!loading.isInitialLoad && getPerformanceBadge() && (
+                {!loading && getPerformanceBadge() && (
                   <div className="mt-3 lg:mt-0">
                     {getPerformanceBadge()}
                   </div>
@@ -135,7 +130,7 @@ export function Dashboard() {
                 <ShoppingBag className="h-5 w-5 mb-1" />
                 <span className="text-xs font-medium">Vendas</span>
               </Link>
-              <button
+                              <button
                 onClick={testConnectivity}
                 disabled={testLoading}
                 className="flex flex-col items-center justify-center p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -143,13 +138,13 @@ export function Dashboard() {
                 <TestTube className={`h-5 w-5 mb-1 ${testLoading ? 'animate-spin' : ''}`} />
                 <span className="text-xs font-medium">{testLoading ? 'Testing...' : 'Testar'}</span>
               </button>
-              <button
+                              <button
                 onClick={refresh}
-                disabled={loading.campaigns || loading.vendas}
+                disabled={loading}
                 className="flex flex-col items-center justify-center p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <RefreshCw className={`h-5 w-5 mb-1 ${(loading.campaigns || loading.vendas) ? 'animate-spin' : ''}`} />
-                <span className="text-xs font-medium">{(loading.campaigns || loading.vendas) ? 'Loading...' : 'Refresh'}</span>
+                <RefreshCw className={`h-5 w-5 mb-1 ${loading ? 'animate-spin' : ''}`} />
+                <span className="text-xs font-medium">{loading ? 'Loading...' : 'Refresh'}</span>
               </button>
             </div>
 
@@ -183,11 +178,11 @@ export function Dashboard() {
               </button>
               <button
                 onClick={refresh}
-                disabled={loading.campaigns || loading.vendas}
+                disabled={loading}
                 className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title="Atualizar"
               >
-                <RefreshCw className={`h-4 w-4 ${(loading.campaigns || loading.vendas) ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
 
@@ -220,10 +215,10 @@ export function Dashboard() {
               </button>
               <button
                 onClick={refresh}
-                disabled={loading.campaigns || loading.vendas}
+                disabled={loading}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
-                <RefreshCw className={`h-4 w-4 ${(loading.campaigns || loading.vendas) ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 <span>Atualizar</span>
               </button>
             </div>
@@ -268,6 +263,8 @@ export function Dashboard() {
           />
         </div>
 
+
+
         {/* Account Filter */}
         <div className="mb-4 md:mb-6">
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
@@ -290,57 +287,15 @@ export function Dashboard() {
         </div>
 
         {/* Loading State */}
-        {loading.campaigns && (
+        {loading && (
           <div className="text-center py-8 md:py-12">
             <RefreshCw className="h-6 w-6 md:h-8 md:w-8 animate-spin mx-auto text-blue-400 mb-4" />
-            <p className="text-gray-400 text-sm md:text-base">Carregando campanhas...</p>
-          </div>
-        )}
-
-        {loading.vendas && (
-          <div className="text-center py-8 md:py-12">
-            <RefreshCw className="h-6 w-6 md:h-8 md:w-8 animate-spin mx-auto text-blue-400 mb-4" />
-            <p className="text-gray-400 text-sm md:text-base">Carregando vendas...</p>
+            <p className="text-gray-400 text-sm md:text-base">Carregando dados...</p>
           </div>
         )}
 
         {/* Metrics Cards */}
-        {loading.isInitialLoad ? (
-          // Mostra skeleton apenas no carregamento inicial
-          <>
-            {/* Summary Stats Skeleton */}
-            <div className="mb-4 md:mb-6">
-              <SkeletonCard />
-            </div>
-
-            {/* Main Metrics Skeleton */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-            </div>
-
-            {/* Secondary Metrics Skeleton */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-            </div>
-
-            {/* Upsell/Orderbump Metrics Skeleton */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-            </div>
-
-            {/* Campaigns Table Skeleton */}
-            <SkeletonTable />
-          </>
-        ) : (
+        {!loading && (
           <>
             {/* Summary Stats */}
             <div className={`mb-4 md:mb-6 ${
@@ -362,8 +317,8 @@ export function Dashboard() {
               <div className={`text-sm ${
                 isExceptionalPerformance ? 'text-green-200' : 'text-gray-300'
               } space-y-1`}>
-                <div className={loading.metrics ? 'opacity-60' : ''}>
-                  <span className="font-medium">{metrics.length}</span> campanhas ativas (com gasto ou vendas)
+                <div>
+                  <span className="font-medium">{metrics.length}</span> campanhas com gasto maior que R$ 0,00
                   {isExceptionalPerformance && (
                     <span className="ml-2 text-green-400 text-xs">✨ Resultados excelentes!</span>
                   )}
@@ -392,7 +347,6 @@ export function Dashboard() {
                 format="currency"
                 icon="revenue"
                 isHighPerformance={isExceptionalPerformance}
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="Lucro Total"
@@ -401,7 +355,6 @@ export function Dashboard() {
                 icon="profit"
                 isHighPerformance={isExceptionalPerformance}
                 additionalData={{ faturamento: totals.faturamento }}
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="ROAS Médio"
@@ -409,7 +362,6 @@ export function Dashboard() {
                 format="number"
                 icon="roas"
                 isHighPerformance={isExceptionalPerformance}
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="Compras Principais"
@@ -417,7 +369,6 @@ export function Dashboard() {
                 format="number"
                 icon="purchases"
                 isHighPerformance={isExceptionalPerformance}
-                isLoading={loading.metrics}
               />
             </div>
 
@@ -428,28 +379,24 @@ export function Dashboard() {
                 value={totals.faturamento}
                 format="currency"
                 icon="revenue"
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="Valor Investido"
                 value={totals.valorUsado}
                 format="currency"
                 icon="revenue"
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="Ticket Médio"
                 value={totals.ticketMedio}
                 format="currency"
                 icon="revenue"
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="CPA Médio"
                 value={totals.cpa}
                 format="currency"
                 icon="cpa"
-                isLoading={loading.metrics}
               />
             </div>
 
@@ -460,28 +407,24 @@ export function Dashboard() {
                 value={totals.upsellCount}
                 format="number"
                 icon="purchases"
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="Total Orderbumps"
                 value={totals.orderbumpCount}
                 format="number"
                 icon="purchases"
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="Taxa de Upsell"
                 value={totals.compras > 0 ? (totals.upsellCount / totals.compras) * 100 : 0}
                 format="percentage"
                 icon="roas"
-                isLoading={loading.metrics}
               />
               <MetricsCard
                 title="Taxa de Orderbump"
                 value={totals.compras > 0 ? (totals.orderbumpCount / totals.compras) * 100 : 0}
                 format="percentage"
                 icon="roas"
-                isLoading={loading.metrics}
               />
             </div>
 
@@ -537,17 +480,10 @@ export function Dashboard() {
             )}
 
             {/* Campaigns Table */}
-            <CampaignsTable campaigns={metrics} onRefresh={smartRefresh} isLoading={loading.campaigns || loading.vendas} />
+            <CampaignsTable campaigns={metrics} />
           </>
         )}
       </div>
-
-      {/* Performance Indicator */}
-      <PerformanceIndicator 
-        isLoading={loading.campaigns || loading.vendas || loading.metrics}
-        lastUpdate={lastUpdate || undefined}
-        cacheHit={cacheHit}
-      />
 
       {/* Color Configuration Modal */}
       <ColorConfigModal
