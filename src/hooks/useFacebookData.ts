@@ -293,7 +293,7 @@ export function useFacebookData() {
     return result
   }
 
-  // 🎯 Removidas funções do Facebook API - agora usamos apenas dados do Supabase
+  // 🎯 Métricas de vendas vêm do Supabase; gastos e status ainda são obtidos do Facebook API
 
   // Função para determinar se a campanha é CBO ou ABO
   const determineBudgetType = (campaign: FacebookCampaignData): 'CBO' | 'ABO' | 'UNKNOWN' => {
@@ -408,7 +408,7 @@ export function useFacebookData() {
     const vendasCampaignIds = [
       ...new Set(
         vendas
-          .map(v => v.campaign_id)
+          .map(v => v.campaign_id !== null && v.campaign_id !== undefined ? String(v.campaign_id) : null)
           .filter((id): id is string => Boolean(id))
       )
     ]
@@ -436,7 +436,7 @@ export function useFacebookData() {
 
       // Buscar vendas para esta campanha
       const campaignVendas = vendas.filter(
-        venda => venda.campaign_id && venda.campaign_id === campaign.id
+        venda => venda.campaign_id && String(venda.campaign_id) === campaign.id
       )
 
       // Log detalhado para cada campanha
@@ -461,7 +461,7 @@ export function useFacebookData() {
 
     // Processar campanhas órfãs (que têm vendas mas não aparecem no Facebook)
     const orphanCampaignMetrics = vendaOrfas.map(campaignId => {
-      const campaignVendas = vendas.filter(venda => venda.campaign_id === campaignId)
+      const campaignVendas = vendas.filter(venda => String(venda.campaign_id) === campaignId)
 
       console.log(`🔍 Campanha órfã "${campaignId}":`)
       console.log('  💰 Gasto Facebook: R$ 0.00 (não encontrada na API)')
@@ -487,7 +487,7 @@ export function useFacebookData() {
       return createCampaignMetrics(orphanCampaign, campaignVendas, 0, 0)
     })
 
-    const allMetrics = [...facebookCampaignMetrics, ...orphanCampaignMetrics]
+    const allMetrics = [...facebookCampaignMetrics]
 
     // Filtrar apenas campanhas com gasto > 0 OU que tenham vendas
     const filteredMetrics = allMetrics.filter(metric => {

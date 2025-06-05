@@ -3,7 +3,7 @@ const testarVendasHoje = async () => {
   try {
     console.log('🔍 Testando vendas para HOJE...')
     
-    const response = await fetch('http://localhost:3001/api/vendas?period=today')
+    const response = await fetch('http://localhost:3000/api/vendas?period=today')
     const data = await response.json()
     
     console.log('📊 Total de vendas hoje:', data.debug.totalVendas)

@@ -35,6 +35,7 @@ interface LoadingStates {
 
 export function VendasPage() {
   const [vendas, setVendas] = useState<Venda[]>([])
+  const [campaignIds, setCampaignIds] = useState<string[]>([])
   const [loading, setLoading] = useState<LoadingStates>({
     vendas: false,
     stats: false,
@@ -62,6 +63,21 @@ export function VendasPage() {
     }
   }, [])
 
+  const fetchCampaignIds = useCallback(async (selectedPeriod: string) => {
+    try {
+      const response = await fetch(`/api/facebook/campaigns?account=all&period=${selectedPeriod}`)
+      const result = await response.json()
+      if (result.success) {
+        setCampaignIds(result.data.map((c: { id: string }) => c.id))
+      } else {
+        setCampaignIds([])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar campanhas:', error)
+      setCampaignIds([])
+    }
+  }, [])
+
   const calculateStats = (vendasData: Venda[]) => {
     const stats = vendasData.reduce((acc, venda) => {
       const faturamento = parseFloat(venda.faturamento_bruto || '0')
@@ -83,7 +99,8 @@ export function VendasPage() {
 
   useEffect(() => {
     fetchVendas(period)
-  }, [period, fetchVendas])
+    fetchCampaignIds(period)
+  }, [period, fetchVendas, fetchCampaignIds])
 
   // Filtrar vendas baseado na busca e tipo
   const vendasFiltradas = vendas.filter(venda => {
@@ -133,11 +150,17 @@ export function VendasPage() {
 
   const getCampaignIdStyle = (campaign_id: string | null) => {
     if (!campaign_id) return 'bg-red-900/30 text-red-300 border-red-500/30'
+    if (!campaignIds.includes(campaign_id)) {
+      return 'bg-yellow-900/30 text-yellow-300 border-yellow-500/30'
+    }
     return 'text-gray-400 font-mono'
   }
 
   const getCampaignIdLabel = (campaign_id: string | null) => {
     if (!campaign_id) return 'Sem campanha'
+    if (!campaignIds.includes(campaign_id)) {
+      return `${campaign_id} (Não vinculado)`
+    }
     return campaign_id
   }
 
