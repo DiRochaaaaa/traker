@@ -487,7 +487,7 @@ export function useFacebookData() {
       return createCampaignMetrics(orphanCampaign, campaignVendas, 0, 0)
     })
 
-    const allMetrics = [...facebookCampaignMetrics, ...orphanCampaignMetrics]
+    const allMetrics = [...facebookCampaignMetrics]
 
     // Filtrar apenas campanhas com gasto > 0 OU que tenham vendas
     const filteredMetrics = allMetrics.filter(metric => {

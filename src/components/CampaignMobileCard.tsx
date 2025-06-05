@@ -232,12 +232,13 @@ export function CampaignMobileCard({ campaign, onRefresh }: CampaignMobileCardPr
             </div>
           </div>
 
-          {/* Info do Account ID */}
-          <div className="text-xs text-gray-500 text-center pt-2 border-t border-gray-700/30">
-            ID: {campaign.account_id}
+          {/* Info IDs */}
+          <div className="text-xs text-gray-500 text-center pt-2 border-t border-gray-700/30 space-y-0.5">
+            <div>Account: {campaign.account_id}</div>
+            <div>Campanha: {campaign.campaign_id}</div>
           </div>
         </div>
       )}
     </div>
   )
-} 
+}
