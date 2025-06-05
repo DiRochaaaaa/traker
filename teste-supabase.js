@@ -4,7 +4,7 @@ const testSupabase = async () => {
     console.log('🔍 Testando conexão Supabase...')
     
     // Testar busca direta na API sem parâmetros
-    const response = await fetch('http://localhost:3001/api/vendas')
+    const response = await fetch('http://localhost:3000/api/vendas')
     const data = await response.json()
     
     console.log('📊 Resposta completa da API:', JSON.stringify(data, null, 2))
