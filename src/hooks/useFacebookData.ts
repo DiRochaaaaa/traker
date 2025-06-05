@@ -293,7 +293,7 @@ export function useFacebookData() {
     return result
   }
 
-  // 🎯 Removidas funções do Facebook API - agora usamos apenas dados do Supabase
+  // 🎯 Métricas de vendas vêm do Supabase; gastos e status ainda são obtidos do Facebook API
 
   // Função para determinar se a campanha é CBO ou ABO
   const determineBudgetType = (campaign: FacebookCampaignData): 'CBO' | 'ABO' | 'UNKNOWN' => {
