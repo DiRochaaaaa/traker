@@ -30,7 +30,8 @@ export function ProgressiveLoader({
     }
 
     // Se é o primeiro carregamento ou mudança significativa, usar carregamento progressivo
-    if (visibleCount === 0) {
+    const shouldStartProgressive = visibleCount === 0
+    if (shouldStartProgressive) {
       setIsProgressive(true)
       
       const loadBatch = (currentCount: number) => {
@@ -56,7 +57,7 @@ export function ProgressiveLoader({
       setVisibleCount(campaigns.length)
       setIsProgressive(false)
     }
-  }, [campaigns.length, batchSize, delay, isLoading])
+  }, [campaigns.length, batchSize, delay, isLoading]) // visibleCount é controlado internamente pelo efeito
 
   // Se está carregando dados iniciais, mostrar skeleton
   if (isLoading && campaigns.length === 0) {

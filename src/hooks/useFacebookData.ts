@@ -88,7 +88,7 @@ export function useFacebookData() {
     return `${type}_${account || 'all'}_${period || 'today'}`
   }
 
-  const getCachedData = (key: string) => {
+  const getCachedData = useCallback((key: string) => {
     const cached = cache.get(key)
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setCacheHit(true)
@@ -96,7 +96,7 @@ export function useFacebookData() {
     }
     setCacheHit(false)
     return null
-  }
+  }, [cache])
 
   const setCachedData = (key: string, data: unknown) => {
     setCache(prev => new Map(prev.set(key, { data, timestamp: Date.now() })))
@@ -134,7 +134,7 @@ export function useFacebookData() {
     } finally {
       setLoading(prev => ({ ...prev, campaigns: false, isInitialLoad: false }))
     }
-  }, [cache]) // Mantém cache como dependência de forma controlada
+  }, [getCachedData])
 
   const fetchVendas = useCallback(async (period: DatePeriod = 'today') => {
     const cacheKey = getCacheKey('vendas', undefined, period)
@@ -169,7 +169,7 @@ export function useFacebookData() {
     } finally {
       setLoading(prev => ({ ...prev, vendas: false, isInitialLoad: false }))
     }
-  }, [cache]) // Mantém cache como dependência de forma controlada
+  }, [getCachedData])
 
   // 🚀 CARREGAMENTO PARALELO ULTRA-RÁPIDO
   const fetchAllData = useCallback(async (account: string = 'all', period: DatePeriod = 'today') => {
@@ -403,23 +403,6 @@ export function useFacebookData() {
     console.log(`📊 Campanhas do Facebook: ${campaigns.length}`)
     console.log(`💰 Vendas no Supabase: ${vendas.length}`)
     
-    // Log dos campaign_ids disponíveis
-    const campaignIds = campaigns.map(c => c.id)
-    const vendasCampaignIds = [...new Set(vendas.map(v => v.campaign_id).filter((id): id is string => Boolean(id)))]
-    
-    console.log('🎯 Campaign IDs das campanhas Facebook:', campaignIds)
-    console.log('🎯 Campaign IDs das vendas Supabase:', vendasCampaignIds)
-    
-    // Verificar correlação
-    const matches = vendasCampaignIds.filter(id => campaignIds.includes(id))
-    const vendaOrfas = vendasCampaignIds.filter(id => !campaignIds.includes(id))
-    
-    console.log('✅ Matches encontrados:', matches)
-    if (vendaOrfas.length > 0) {
-      console.log('⚠️ Vendas sem campanha correspondente:', vendaOrfas)
-      console.log(`⚠️ ${vendaOrfas.length} campaign_ids de vendas não encontrados nas campanhas do Facebook`)
-    }
-    
     // Processar campanhas do Facebook
     const facebookCampaignMetrics = campaigns.map(campaign => {
       const insights = campaign.insights?.data?.[0]
@@ -444,50 +427,9 @@ export function useFacebookData() {
       
       return createCampaignMetrics(campaign, campaignVendas, spend, cpm)
     })
-    
-    // Processar campanhas órfãs (que têm vendas mas não aparecem no Facebook)
-    const orphanCampaignMetrics = vendaOrfas.map(campaignId => {
-      const campaignVendas = vendas.filter(venda => venda.campaign_id === campaignId)
-      
-      console.log(`🔍 Campanha órfã "${campaignId}":`)
-      console.log(`  💰 Gasto Facebook: R$ 0.00 (não encontrada na API)`)
-      console.log(`  🛒 Vendas encontradas: ${campaignVendas.length}`)
-      
-      campaignVendas.forEach((venda, i) => {
-        console.log(`    ${i+1}. ${venda.produto} - R$ ${venda.faturamento_bruto} (${venda.tipo || 'main'})`)
-      })
-      
-      // Criar campanha fictícia para as vendas órfãs
-      const orphanCampaign = {
-        id: campaignId,
-        name: `Campanha ${campaignId} (Órfã)`,
-        status: 'UNKNOWN',
-        effective_status: 'UNKNOWN',
-        daily_budget: '0',
-        account_id: 'unknown',
-        insights: { data: [] }
-      }
-      
-      return createCampaignMetrics(orphanCampaign, campaignVendas, 0, 0)
-    })
-    
-    const allMetrics = [...facebookCampaignMetrics, ...orphanCampaignMetrics]
-    
-    // Filtrar apenas campanhas com gasto > 0 OU que tenham vendas
-    const filteredMetrics = allMetrics.filter(metric => {
-      const hasSpend = metric.valorUsado > 0
-      const hasSales = metric.compras > 0 || metric.faturamento > 0
-      
-      // Manter campanhas que têm gasto OU vendas
-      return hasSpend || hasSales
-    })
-    
-    // 💰 ORDENAR POR MAIOR LUCRO (padrão sempre)
-    const sortedMetrics = filteredMetrics.sort((a, b) => b.lucro - a.lucro)
-    
-    console.log(`📊 Total de métricas processadas: ${allMetrics.length} (${facebookCampaignMetrics.length} Facebook + ${orphanCampaignMetrics.length} órfãs)`)
-    console.log(`📊 Métricas após filtro: ${filteredMetrics.length} (removidas: ${allMetrics.length - filteredMetrics.length})`)
-    console.log(`💰 Métricas ordenadas por MAIOR LUCRO automaticamente`)
+
+    // Remover processamento de campanhas órfãs e retornar apenas campanhas do Facebook
+    const sortedMetrics = facebookCampaignMetrics.sort((a, b) => b.lucro - a.lucro)
     
     return sortedMetrics
   }, [campaigns, vendas])

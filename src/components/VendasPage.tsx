@@ -131,6 +131,33 @@ export function VendasPage() {
     return tipo
   }
 
+  const getCampaignIdStyle = (campaign_id: string | null) => {
+    if (!campaign_id) return 'bg-red-900/30 text-red-300 border-red-500/30'
+    return 'text-gray-400 font-mono'
+  }
+
+  const getCampaignIdLabel = (campaign_id: string | null) => {
+    if (!campaign_id) return 'Sem campanha'
+    return campaign_id
+  }
+
+  const getPlatformStyle = (plataforma: string | null) => {
+    if (!plataforma) return 'bg-gray-700/30 text-gray-300 border-gray-500/30'
+    switch (plataforma.toLowerCase()) {
+      case 'cakto':
+        return 'bg-green-900/30 text-green-300 border-green-500/30'
+      case 'hotmart':
+        return 'bg-orange-900/30 text-orange-300 border-orange-500/30'
+      default:
+        return 'bg-gray-700/30 text-gray-300 border-gray-500/30'
+    }
+  }
+
+  const getPlatformLabel = (plataforma: string | null) => {
+    if (!plataforma) return 'Desconhecida'
+    return plataforma.charAt(0).toUpperCase() + plataforma.slice(1).toLowerCase()
+  }
+
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-4 md:py-8">
@@ -297,6 +324,14 @@ export function VendasPage() {
                     <div key={venda.id} className="p-4 hover:bg-gray-700/50 transition-colors">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-2 py-1 text-xs font-medium rounded border ${getPlatformStyle(venda.plataforma)}`}>
+                              {getPlatformLabel(venda.plataforma)}
+                            </span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded border ${getTipoColor(venda.tipo)}`}>
+                              {getTipoLabel(venda.tipo)}
+                            </span>
+                          </div>
                           <h4 className="text-white font-medium truncate">
                             {venda.produto || 'Produto não informado'}
                           </h4>
@@ -304,9 +339,6 @@ export function VendasPage() {
                             {venda.cliente_name || 'Cliente não informado'}
                           </p>
                         </div>
-                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getTipoColor(venda.tipo)}`}>
-                          {getTipoLabel(venda.tipo)}
-                        </span>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 mt-3">
@@ -325,9 +357,14 @@ export function VendasPage() {
                       </div>
                       
                       <div className="mt-3 pt-3 border-t border-gray-700/50">
-                        <div className="flex items-center justify-between text-xs text-gray-400">
-                          <span>{formatDate(venda.created_at)}</span>
-                          <span>ID: {venda.purchase_id}</span>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">{formatDate(venda.created_at)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-400">ID: {venda.purchase_id || '—'}</span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded border ${getCampaignIdStyle(venda.campaign_id)}`}>
+                              {getCampaignIdLabel(venda.campaign_id)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -342,6 +379,9 @@ export function VendasPage() {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                         Data
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Plataforma
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                         Produto
@@ -372,6 +412,11 @@ export function VendasPage() {
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
                           {formatDate(venda.created_at)}
                         </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-medium rounded border ${getPlatformStyle(venda.plataforma)}`}>
+                            {getPlatformLabel(venda.plataforma)}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-sm text-white max-w-xs truncate">
                           {venda.produto || '—'}
                         </td>
@@ -392,8 +437,10 @@ export function VendasPage() {
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 font-mono">
                           {venda.purchase_id || '—'}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 font-mono">
-                          {venda.campaign_id || '—'}
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 text-xs font-medium rounded border ${getCampaignIdStyle(venda.campaign_id)}`}>
+                            {getCampaignIdLabel(venda.campaign_id)}
+                          </span>
                         </td>
                       </tr>
                     ))}
