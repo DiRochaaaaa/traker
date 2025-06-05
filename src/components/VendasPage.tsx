@@ -51,7 +51,7 @@ export function VendasPage() {
     try {
       const response = await fetch(`/api/vendas?period=${selectedPeriod}`)
       const result = await response.json()
-      
+
       if (result.success) {
         setVendas(result.data)
         calculateStats(result.data)
@@ -82,10 +82,10 @@ export function VendasPage() {
     const stats = vendasData.reduce((acc, venda) => {
       const faturamento = parseFloat(venda.faturamento_bruto || '0')
       const comissao = parseFloat(venda.comissao || '0')
-      const isMain = !venda.tipo || venda.tipo.toLowerCase() === 'main' || 
-                     (!venda.tipo.toLowerCase().includes('upsell') && 
+      const isMain = !venda.tipo || venda.tipo.toLowerCase() === 'main' ||
+                     (!venda.tipo.toLowerCase().includes('upsell') &&
                       !venda.tipo.toLowerCase().includes('orderbump'))
-      
+
       return {
         total: acc.total + 1,
         faturamento: acc.faturamento + faturamento,
@@ -93,7 +93,7 @@ export function VendasPage() {
         vendas_main: acc.vendas_main + (isMain ? 1 : 0)
       }
     }, { total: 0, faturamento: 0, comissao: 0, vendas_main: 0 })
-    
+
     setStats(stats)
   }
 
@@ -104,16 +104,16 @@ export function VendasPage() {
 
   // Filtrar vendas baseado na busca e tipo
   const vendasFiltradas = vendas.filter(venda => {
-    const matchSearch = !searchTerm || 
+    const matchSearch = !searchTerm ||
       venda.produto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       venda.cliente_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       venda.purchase_id?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchTipo = filterTipo === 'all' || 
+
+    const matchTipo = filterTipo === 'all' ||
       (filterTipo === 'main' && (!venda.tipo || venda.tipo.toLowerCase() === 'main')) ||
       (filterTipo === 'upsell' && venda.tipo?.toLowerCase().includes('upsell')) ||
       (filterTipo === 'orderbump' && venda.tipo?.toLowerCase().includes('orderbump'))
-    
+
     return matchSearch && matchTipo
   })
 
@@ -231,7 +231,7 @@ export function VendasPage() {
                   <ShoppingBag className="h-8 w-8 text-blue-400" />
                 </div>
               </div>
-              
+
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -363,7 +363,7 @@ export function VendasPage() {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4 mt-3">
                         <div>
                           <span className="text-gray-400 text-xs">Comissão</span>
@@ -378,7 +378,7 @@ export function VendasPage() {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="mt-3 pt-3 border-t border-gray-700/50">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-gray-400">{formatDate(venda.created_at)}</span>
@@ -476,4 +476,4 @@ export function VendasPage() {
       </div>
     </div>
   )
-} 
+}
