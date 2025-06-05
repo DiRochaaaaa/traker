@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CampaignMetrics } from '@/hooks/useFacebookData'
 import { SkeletonCard } from './SkeletonCard'
 
@@ -17,20 +17,22 @@ export function ProgressiveLoader({
   isLoading, 
   children, 
   batchSize = 3, 
-  delay = 200 
+  delay = 200
 }: ProgressiveLoaderProps) {
   const [visibleCount, setVisibleCount] = useState(0)
+  const visibleCountRef = useRef(0)
   const [isProgressive, setIsProgressive] = useState(false)
 
   useEffect(() => {
     if (campaigns.length === 0 || isLoading) {
       setVisibleCount(0)
+      visibleCountRef.current = 0
       setIsProgressive(false)
       return
     }
 
     // Se é o primeiro carregamento ou mudança significativa, usar carregamento progressivo
-    const shouldStartProgressive = visibleCount === 0
+    const shouldStartProgressive = visibleCountRef.current === 0
     if (shouldStartProgressive) {
       setIsProgressive(true)
       
@@ -40,8 +42,9 @@ export function ProgressiveLoader({
           return
         }
         
-        const nextCount = Math.min(currentCount + batchSize, campaigns.length)
-        setVisibleCount(nextCount)
+          const nextCount = Math.min(currentCount + batchSize, campaigns.length)
+          visibleCountRef.current = nextCount
+          setVisibleCount(nextCount)
         
         if (nextCount < campaigns.length) {
           setTimeout(() => loadBatch(nextCount), delay)
@@ -54,7 +57,8 @@ export function ProgressiveLoader({
       setTimeout(() => loadBatch(0), 100)
     } else {
       // Se já temos campanhas visíveis, mostrar todas imediatamente
-      setVisibleCount(campaigns.length)
+        visibleCountRef.current = campaigns.length
+        setVisibleCount(campaigns.length)
       setIsProgressive(false)
     }
   }, [campaigns.length, batchSize, delay, isLoading]) // visibleCount é controlado internamente pelo efeito
