@@ -158,9 +158,9 @@ export function VendasPage() {
 
   const getCampaignIdLabel = (campaign_id: string | null) => {
     if (!campaign_id) return 'Sem campanha'
-    if (!campaignIds.includes(campaign_id)) {
-      return `${campaign_id} (Não vinculado)`
-    }
+
+    if (!campaignIds.includes(campaign_id)) return 'Não vinculado'
+
     return campaign_id
   }
 
