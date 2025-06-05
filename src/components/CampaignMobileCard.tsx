@@ -242,4 +242,3 @@ export function CampaignMobileCard({ campaign, onRefresh }: CampaignMobileCardPr
     </div>
   )
 }
-
