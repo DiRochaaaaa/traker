@@ -119,6 +119,11 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query.order('created_at', { ascending: false })
 
+    const cleanData = (data || []).map((venda: Record<string, unknown>) => ({
+      ...venda,
+      campaign_id: venda.campaign_id !== null && venda.campaign_id !== undefined ? String(venda.campaign_id) : null
+    }))
+
     if (error) {
       console.error('❌ [VENDAS API] Erro na query:', error)
       throw error
@@ -173,7 +178,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: data || [],
+      data: cleanData,
       period: period,
       dateRange: period ? getDateRange(period) : null,
       debug: {
