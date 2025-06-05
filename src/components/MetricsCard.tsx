@@ -50,7 +50,14 @@ export function MetricsCard({ title, value, change, format = 'number', icon, isH
   const isROASCard = title === 'ROAS Médio'
   
   // Para ROAS, usar o valor direto. Para lucro, precisamos do ROAS para determinar a cor
-  const roasForColors = isROASCard ? lucroValue : (isLucroCard && additionalData?.faturamento ? (lucroValue / additionalData.faturamento) * 100 : lucroValue)
+  const roasForColors = isROASCard
+    ? lucroValue
+    : isLucroCard && additionalData?.faturamento
+      ? (() => {
+          const spend = additionalData.faturamento - lucroValue
+          return spend > 0 ? additionalData.faturamento / spend : 0
+        })()
+      : lucroValue
   
   // 💰 Calcular percentual do lucro (Lucro/Faturamento)
   const getProfitPercentage = () => {
@@ -65,7 +72,8 @@ export function MetricsCard({ title, value, change, format = 'number', icon, isH
   const getColorsForCard = () => {
     if (isLucroCard && additionalData?.faturamento) {
       // Para lucro, usar as cores baseadas no ROAS
-      const roasCalculado = (lucroValue / additionalData.faturamento) * 100 / additionalData.faturamento * lucroValue
+      const spend = additionalData.faturamento - lucroValue
+      const roasCalculado = spend > 0 ? additionalData.faturamento / spend : 0
       return getProfitColors(lucroValue, roasCalculado)
     }
     if (isROASCard) {
