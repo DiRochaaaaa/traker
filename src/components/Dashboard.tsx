@@ -29,6 +29,7 @@ export function Dashboard() {
     setSelectedAccount,
     setSelectedPeriod,
     processMetrics,
+    processAllMetrics,
     getTotals,
     getPlataformaMetrics,
     forceRefresh
@@ -68,13 +69,15 @@ export function Dashboard() {
   }, [])
 
   const metrics = useMemo(() => processMetrics(), [processMetrics])
+  const allMetrics = useMemo(() => processAllMetrics(), [processAllMetrics])
   const totals = useMemo(() => getTotals(metrics), [metrics, getTotals])
   const plataformaMetrics = useMemo(() => getPlataformaMetrics(), [getPlataformaMetrics])
 
   const accountSummaries = useMemo<AccountSummary[]>(() => {
     const map: Record<string, { faturamento: number; comissao: number; valorUsado: number; compras: number }> = {}
 
-    metrics.forEach(metric => {
+    allMetrics.forEach(metric => {
+
       const acc = map[metric.account_id] || { faturamento: 0, comissao: 0, valorUsado: 0, compras: 0 }
       acc.faturamento += metric.faturamento
       acc.comissao += metric.comissao
@@ -92,7 +95,8 @@ export function Dashboard() {
         return { accountId, accountName, faturamento: data.faturamento, comissao: data.comissao, valorUsado: data.valorUsado, lucro, roas, cpa }
       })
       .sort((a, b) => b.lucro - a.lucro)
-  }, [metrics, availableAccounts])
+  }, [allMetrics, availableAccounts])
+
 
   // 🎯 Função para detectar performance geral excelente
   const isExceptionalPerformance = useMemo(() => {

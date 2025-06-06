@@ -67,6 +67,7 @@ export type DatePeriod = 'today' | 'yesterday' | 'last_7_days' | 'this_month'
 
 export function useFacebookData() {
   const [campaigns, setCampaigns] = useState<FacebookCampaignData[]>([])
+  const [allCampaigns, setAllCampaigns] = useState<FacebookCampaignData[]>([])
   const [vendas, setVendas] = useState<Venda[]>([])
   const [loading, setLoading] = useState<LoadingStates>({
     campaigns: false,
@@ -136,6 +137,33 @@ export function useFacebookData() {
     }
   }, [getCachedData])
 
+  const fetchCampaignsAll = useCallback(async (period: DatePeriod = 'today') => {
+    const cacheKey = getCacheKey('campaigns', 'all', period)
+
+    const cachedData = getCachedData(cacheKey)
+    if (cachedData) {
+      setAllCampaigns(cachedData as FacebookCampaignData[])
+      console.log(`⚡ Cache HIT: Campanhas all ${period}`)
+      return
+    }
+
+    try {
+      console.log(`🚀 Buscando todas as campanhas ${period}`)
+      const response = await fetch(`/api/facebook/campaigns?account=all&period=${period}`)
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch campaigns')
+      }
+
+      setAllCampaigns(result.data)
+      setCachedData(cacheKey, result.data)
+      console.log(`✅ Todas as campanhas carregadas: ${result.data.length}`)
+    } catch (err) {
+      console.error('Erro ao buscar todas as campanhas:', err)
+    }
+  }, [getCachedData])
+
   const fetchVendas = useCallback(async (period: DatePeriod = 'today') => {
     const cacheKey = getCacheKey('vendas', undefined, period)
     
@@ -175,19 +203,20 @@ export function useFacebookData() {
   const fetchAllData = useCallback(async (account: string = 'all', period: DatePeriod = 'today') => {
     console.log(`🔥 INICIANDO carregamento paralelo: ${account} ${period}`)
     setLoading(prev => ({ ...prev, metrics: true }))
-    
+
     const startTime = Date.now()
-    
+
     // ⚡ Execução paralela para velocidade máxima
     await Promise.all([
       fetchCampaigns(account, period),
-      fetchVendas(period)
+      fetchVendas(period),
+      fetchCampaignsAll(period)
     ])
     
     const duration = Date.now() - startTime
     console.log(`⚡ CONCLUÍDO em ${duration}ms - Cache hits: ${cacheHit}`)
     setLoading(prev => ({ ...prev, metrics: false }))
-  }, [fetchCampaigns, fetchVendas, cacheHit])
+  }, [fetchCampaigns, fetchVendas, fetchCampaignsAll, cacheHit])
 
   // 🔄 FORCE REFRESH - Limpa cache e força carregamento
   const forceRefresh = useCallback(async () => {
@@ -214,7 +243,8 @@ export function useFacebookData() {
       // Força busca direta nas APIs (cache limpo garante que não há cache hit)
       await Promise.all([
         fetchCampaigns(selectedAccount, selectedPeriod),
-        fetchVendas(selectedPeriod)
+        fetchVendas(selectedPeriod),
+        fetchCampaignsAll(selectedPeriod)
       ])
       
       const duration = Date.now() - startTime
@@ -231,7 +261,7 @@ export function useFacebookData() {
         isInitialLoad: false 
       }))
     }
-  }, [fetchCampaigns, fetchVendas, selectedAccount, selectedPeriod])
+  }, [fetchCampaigns, fetchVendas, fetchCampaignsAll, selectedAccount, selectedPeriod])
 
   // 🎯 REFRESH INTELIGENTE (sem loading principal para UX melhor)
   const smartRefresh = useCallback(async () => {
@@ -240,11 +270,12 @@ export function useFacebookData() {
     // Não mostrar loading principal, manter dados atuais visíveis
     await Promise.all([
       fetchCampaigns(selectedAccount, selectedPeriod),
-      fetchVendas(selectedPeriod)
+      fetchVendas(selectedPeriod),
+      fetchCampaignsAll(selectedPeriod)
     ])
     
     console.log('✨ Smart refresh concluído')
-  }, [fetchCampaigns, fetchVendas, selectedAccount, selectedPeriod])
+  }, [fetchCampaigns, fetchVendas, fetchCampaignsAll, selectedAccount, selectedPeriod])
 
   // Função para normalizar valores monetários (aceita tanto 10.00 quanto 10,00)
   const parseMonetaryValue = (value: string | null | number): number => {
@@ -322,7 +353,7 @@ export function useFacebookData() {
     }
   }
 
-  const processMetrics = useCallback((): CampaignMetrics[] => {
+  const processMetricsFor = useCallback((sourceCampaigns: FacebookCampaignData[]): CampaignMetrics[] => {
     // Função auxiliar para criar métricas de campanha
     const createCampaignMetrics = (campaign: FacebookCampaignData, campaignVendas: Venda[], spend: number, cpm: number): CampaignMetrics => {
       // Separar vendas por tipo
@@ -400,11 +431,11 @@ export function useFacebookData() {
     }
 
     console.log('🔄 Processando métricas...')
-    console.log(`📊 Campanhas do Facebook: ${campaigns.length}`)
+    console.log(`📊 Campanhas do Facebook: ${sourceCampaigns.length}`)
     console.log(`💰 Vendas no Supabase: ${vendas.length}`)
 
     // Log dos campaign_ids disponíveis
-    const campaignIds = campaigns.map(c => c.id)
+    const campaignIds = sourceCampaigns.map(c => c.id)
     const vendasCampaignIds = [
       ...new Set(
         vendas
@@ -429,7 +460,7 @@ export function useFacebookData() {
     }
 
     // Processar campanhas do Facebook
-    const facebookCampaignMetrics = campaigns.map(campaign => {
+    const facebookCampaignMetrics = sourceCampaigns.map(campaign => {
       const insights = campaign.insights?.data?.[0]
       const spend = parseFloat(insights?.spend || '0')
       const cpm = parseFloat(insights?.cpm || '0')
@@ -510,7 +541,10 @@ export function useFacebookData() {
     console.log('💰 Métricas ordenadas por MAIOR LUCRO automaticamente')
 
     return sortedMetrics
-  }, [campaigns, vendas])
+  }, [vendas])
+
+  const processMetrics = useCallback(() => processMetricsFor(campaigns), [processMetricsFor, campaigns])
+  const processAllMetrics = useCallback(() => processMetricsFor(allCampaigns), [processMetricsFor, allCampaigns])
 
   const getTotals = useCallback((metrics: CampaignMetrics[]) => {
     const totals = metrics.reduce((acc, metric) => ({
@@ -600,6 +634,7 @@ export function useFacebookData() {
 
   return {
     campaigns,
+    allCampaigns,
     vendas,
     loading,
     error,
@@ -610,9 +645,11 @@ export function useFacebookData() {
     setSelectedAccount: updateAccount,
     setSelectedPeriod: updatePeriod,
     fetchCampaigns,
+    fetchCampaignsAll,
     fetchVendas,
     fetchAllData,
     processMetrics,
+    processAllMetrics,
     getTotals,
     getPlataformaMetrics,
     refresh: forceRefresh,
