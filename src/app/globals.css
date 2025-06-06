@@ -102,7 +102,7 @@
 @media (max-width: 640px) {
   .mobile-button-grid button,
   .mobile-button-grid a {
-    min-height: 60px;
+    min-height: 48px;
     backdrop-filter: blur(8px);
     position: relative;
     overflow: hidden;
