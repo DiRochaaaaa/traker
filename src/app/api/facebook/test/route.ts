@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server'
 
 // Função para obter todas as contas dinamicamente
-function getAllFacebookAccounts(): string[] {
-  const accounts: string[] = []
-  
-  // Buscar todas as variáveis FB_AD_ACCOUNT_*
+interface AccountInfo {
+  id: string
+  envName?: string
+}
+
+function getAllFacebookAccounts(): AccountInfo[] {
+  const accounts: AccountInfo[] = []
+
   Object.keys(process.env).forEach(key => {
-    if (key.startsWith('FB_AD_ACCOUNT_') && process.env[key]) {
-      accounts.push(process.env[key]!)
+    const match = key.match(/^FB_AD_ACCOUNT_(\d+)$/)
+    if (match && process.env[key]) {
+      const idx = match[1]
+      const id = process.env[key]!
+      const envName = process.env[`FB_AD_ACCOUNT_NAME_${idx}`]
+      accounts.push({ id, envName })
     }
   })
-  
+
   return accounts
 }
 
@@ -19,10 +27,11 @@ export async function GET() {
     console.log('🧪 Testing Facebook API access...')
     
     const FB_TOKEN = process.env.FB_TOKEN
-    const allAccounts = getAllFacebookAccounts()
-    
+    const accounts = getAllFacebookAccounts()
+    const allAccounts = accounts.map(a => a.id)
+
     console.log(`🔐 FB_TOKEN exists: ${!!FB_TOKEN}`)
-    console.log(`🏢 Found ${allAccounts.length} configured accounts`)
+    console.log(`🏢 Found ${accounts.length} configured accounts`)
     
     if (!FB_TOKEN) {
       return NextResponse.json({
@@ -57,7 +66,8 @@ export async function GET() {
     console.log('🏢 Testing account access...')
     const accountTests = []
 
-    for (const accountId of allAccounts) {
+    for (const account of accounts) {
+      const accountId = account.id
       console.log(`🔍 Testing access to account: ${accountId}`)
       const accountUrl = `https://graph.facebook.com/v23.0/${accountId}`
       const accountParams = new URLSearchParams({
@@ -67,6 +77,9 @@ export async function GET() {
 
       const accountResponse = await fetch(`${accountUrl}?${accountParams}`)
       const accountData = await accountResponse.json()
+      if (account.envName && !accountData.name) {
+        accountData.name = account.envName
+      }
 
       accountTests.push({
         accountId,
@@ -81,7 +94,8 @@ export async function GET() {
     // Test campaigns access
     console.log('📊 Testing campaigns access...')
     
-    for (const accountId of allAccounts) {
+    for (const account of accounts) {
+      const accountId = account.id
       console.log(`🔍 Testing campaigns for account: ${accountId}`)
       const campaignsUrl = `https://graph.facebook.com/v23.0/${accountId}/campaigns`
       const campaignsParams = new URLSearchParams({
@@ -124,4 +138,4 @@ export async function GET() {
       details: error instanceof Error ? error.message : 'Unknown error'
     })
   }
-} 
+}
