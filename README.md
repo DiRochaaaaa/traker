@@ -23,14 +23,20 @@ O sistema suporta múltiplas contas automaticamente. Adicione quantas precisar:
 ```env
 # Contas obrigatórias (mínimo 1)
 FB_AD_ACCOUNT_1=act_1234567890
+FB_AD_ACCOUNT_NAME_1="Conta Principal"
 FB_AD_ACCOUNT_2=act_0987654321
+FB_AD_ACCOUNT_NAME_2="Conta Secundária"
 
 # Contas opcionais (adicione quantas precisar)
 FB_AD_ACCOUNT_3=act_1111111111
 FB_AD_ACCOUNT_4=act_2222222222
 FB_AD_ACCOUNT_5=act_3333333333
+# FB_AD_ACCOUNT_NAME_4="Outra Conta"
 # ... e assim por diante
 ```
+
+Os nomes (`FB_AD_ACCOUNT_NAME_X`) são opcionais e, quando definidos, aparecem no
+**Resumo por Conta** do dashboard.
 
 #### 🆕 Como Adicionar Nova Conta de Anúncio
 
