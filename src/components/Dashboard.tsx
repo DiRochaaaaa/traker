@@ -3,6 +3,7 @@
 import { useFacebookData } from '@/hooks/useFacebookData'
 import { MetricsCard } from './MetricsCard'
 import { CampaignsTable } from './CampaignsTable'
+import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { DateSelector } from './DateSelector'
 import { ColorConfigModal } from './ColorConfigModal'
 import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone } from 'lucide-react'
@@ -69,6 +70,29 @@ export function Dashboard() {
   const metrics = useMemo(() => processMetrics(), [processMetrics])
   const totals = useMemo(() => getTotals(metrics), [metrics, getTotals])
   const plataformaMetrics = useMemo(() => getPlataformaMetrics(), [getPlataformaMetrics])
+
+  const accountSummaries = useMemo<AccountSummary[]>(() => {
+    const map: Record<string, { faturamento: number; comissao: number; valorUsado: number; compras: number }> = {}
+
+    metrics.forEach(metric => {
+      const acc = map[metric.account_id] || { faturamento: 0, comissao: 0, valorUsado: 0, compras: 0 }
+      acc.faturamento += metric.faturamento
+      acc.comissao += metric.comissao
+      acc.valorUsado += metric.valorUsado
+      acc.compras += metric.compras
+      map[metric.account_id] = acc
+    })
+
+    return Object.entries(map)
+      .map(([accountId, data]) => {
+        const accountName = availableAccounts.find(a => a.accountId === accountId)?.name || accountId
+        const lucro = data.comissao - data.valorUsado
+        const roas = data.valorUsado > 0 ? data.faturamento / data.valorUsado : 0
+        const cpa = data.compras > 0 ? data.valorUsado / data.compras : 0
+        return { accountId, accountName, faturamento: data.faturamento, comissao: data.comissao, valorUsado: data.valorUsado, lucro, roas, cpa }
+      })
+      .sort((a, b) => b.lucro - a.lucro)
+  }, [metrics, availableAccounts])
 
   // 🎯 Função para detectar performance geral excelente
   const isExceptionalPerformance = useMemo(() => {
@@ -293,6 +317,9 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Account Summaries */}
+        <AccountSummaryTable summaries={accountSummaries} isLoading={loading.campaigns || loading.vendas} />
 
         {/* Metrics Cards - Sempre visíveis com loading states */}
         {(loading.isInitialLoad || loading.campaigns || loading.vendas) ? (
