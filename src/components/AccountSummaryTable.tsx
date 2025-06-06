@@ -1,11 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
-
 import { DollarSign, TrendingDown, TrendingUp, Target, MousePointerClick } from 'lucide-react'
 import { AccountMobileCard } from './AccountMobileCard'
 
-        
 
 export interface AccountSummary {
   accountId: string
@@ -60,7 +58,6 @@ export function AccountSummaryTable({ summaries, isLoading = false }: AccountSum
         <h2 className="text-lg md:text-xl font-semibold text-white">Resumo por Conta</h2>
       </div>
 
-
       {/* Mobile cards */}
       <div className="block md:hidden p-3 space-y-3">
         {rows.map(row => (
@@ -71,10 +68,12 @@ export function AccountSummaryTable({ summaries, isLoading = false }: AccountSum
       {/* Desktop table */}
       <div className="hidden md:block overflow-x-auto">
 
+
         <table className="min-w-full text-sm">
           <thead className="bg-gray-900/50">
             <tr>
               <th className="px-3 py-2 text-left text-gray-300">Conta</th>
+
 
               <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" />Faturamento</div></th>
               <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" />Comissão</div></th>
@@ -82,6 +81,7 @@ export function AccountSummaryTable({ summaries, isLoading = false }: AccountSum
               <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><TrendingUp className="h-3 w-3" />Lucro</div></th>
               <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><Target className="h-3 w-3" />ROAS</div></th>
               <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><MousePointerClick className="h-3 w-3" />CPA</div></th>
+
 
             </tr>
           </thead>
