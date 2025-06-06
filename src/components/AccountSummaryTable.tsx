@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
+import { DollarSign, TrendingDown, TrendingUp, Target, MousePointerClick } from 'lucide-react'
+import { AccountMobileCard } from './AccountMobileCard'
 
 export interface AccountSummary {
   accountId: string
@@ -54,17 +56,26 @@ export function AccountSummaryTable({ summaries, isLoading = false }: AccountSum
       <div className="p-3 md:p-4 border-b border-gray-700">
         <h2 className="text-lg md:text-xl font-semibold text-white">Resumo por Conta</h2>
       </div>
-      <div className="overflow-x-auto">
+
+      {/* Mobile cards */}
+      <div className="block md:hidden p-3 space-y-3">
+        {rows.map(row => (
+          <AccountMobileCard key={row.accountId} summary={row} />
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-900/50">
             <tr>
               <th className="px-3 py-2 text-left text-gray-300">Conta</th>
-              <th className="px-3 py-2 text-right text-gray-300">Faturamento</th>
-              <th className="px-3 py-2 text-right text-gray-300">Comissão</th>
-              <th className="px-3 py-2 text-right text-gray-300">Valor Usado</th>
-              <th className="px-3 py-2 text-right text-gray-300">Lucro</th>
-              <th className="px-3 py-2 text-right text-gray-300">ROAS</th>
-              <th className="px-3 py-2 text-right text-gray-300">CPA</th>
+              <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" />Faturamento</div></th>
+              <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" />Comissão</div></th>
+              <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><TrendingDown className="h-3 w-3" />Valor Usado</div></th>
+              <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><TrendingUp className="h-3 w-3" />Lucro</div></th>
+              <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><Target className="h-3 w-3" />ROAS</div></th>
+              <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><MousePointerClick className="h-3 w-3" />CPA</div></th>
             </tr>
           </thead>
           <tbody className="bg-gray-800 divide-y divide-gray-700">
