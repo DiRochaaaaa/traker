@@ -77,22 +77,23 @@ export function Dashboard() {
     const map: Record<string, { faturamento: number; comissao: number; valorUsado: number; compras: number }> = {}
 
     allMetrics.forEach(metric => {
+      const id = metric.account_id.replace('act_', '')
 
-      const acc = map[metric.account_id] || { faturamento: 0, comissao: 0, valorUsado: 0, compras: 0 }
+      const acc = map[id] || { faturamento: 0, comissao: 0, valorUsado: 0, compras: 0 }
       acc.faturamento += metric.faturamento
       acc.comissao += metric.comissao
       acc.valorUsado += metric.valorUsado
       acc.compras += metric.compras
-      map[metric.account_id] = acc
+      map[id] = acc
     })
 
     return Object.entries(map)
-      .map(([accountId, data]) => {
-        const accountName = availableAccounts.find(a => a.accountId === accountId)?.name || accountId
+      .map(([id, data]) => {
+        const accountName = availableAccounts.find(a => a.accountId === id)?.name || id
         const lucro = data.comissao - data.valorUsado
         const roas = data.valorUsado > 0 ? data.faturamento / data.valorUsado : 0
         const cpa = data.compras > 0 ? data.valorUsado / data.compras : 0
-        return { accountId, accountName, faturamento: data.faturamento, comissao: data.comissao, valorUsado: data.valorUsado, lucro, roas, cpa }
+        return { accountId: id, accountName, faturamento: data.faturamento, comissao: data.comissao, valorUsado: data.valorUsado, lucro, roas, cpa }
       })
       .sort((a, b) => b.lucro - a.lucro)
   }, [allMetrics, availableAccounts])
