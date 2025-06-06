@@ -3,9 +3,10 @@
 import { useFacebookData } from '@/hooks/useFacebookData'
 import { MetricsCard } from './MetricsCard'
 import { CampaignsTable } from './CampaignsTable'
+import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { DateSelector } from './DateSelector'
 import { ColorConfigModal } from './ColorConfigModal'
-import { RefreshCw, Filter, TestTube, ShoppingBag, Settings } from 'lucide-react'
+import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 
@@ -16,14 +17,6 @@ interface AccountInfo {
 }
 
 export function Dashboard() {
-  const [testResults, setTestResults] = useState<{
-    success: boolean
-    error?: string
-    details?: string
-    tokenTest?: { user?: { name?: string } }
-    summary?: { accountsAccessible: number; totalAccounts: number; campaignsFound: number }
-  } | null>(null)
-  const [testLoading, setTestLoading] = useState(false)
   const [colorConfigOpen, setColorConfigOpen] = useState(false)
   const [availableAccounts, setAvailableAccounts] = useState<AccountInfo[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -36,6 +29,7 @@ export function Dashboard() {
     setSelectedAccount,
     setSelectedPeriod,
     processMetrics,
+    processAllMetrics,
     getTotals,
     getPlataformaMetrics,
     forceRefresh
@@ -74,26 +68,33 @@ export function Dashboard() {
     fetchAvailableAccounts()
   }, [])
 
-  const testConnectivity = async () => {
-    setTestLoading(true)
-    try {
-      const response = await fetch('/api/facebook/test')
-      const data = await response.json()
-      setTestResults(data)
-    } catch (error) {
-      setTestResults({
-        success: false,
-        error: 'Erro ao testar conectividade',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      })
-    } finally {
-      setTestLoading(false)
-    }
-  }
-
   const metrics = useMemo(() => processMetrics(), [processMetrics])
+  const allMetrics = useMemo(() => processAllMetrics(), [processAllMetrics])
   const totals = useMemo(() => getTotals(metrics), [metrics, getTotals])
   const plataformaMetrics = useMemo(() => getPlataformaMetrics(), [getPlataformaMetrics])
+
+  const accountSummaries = useMemo<AccountSummary[]>(() => {
+    const map: Record<string, { faturamento: number; comissao: number; valorUsado: number; compras: number }> = {}
+
+    allMetrics.forEach(metric => {
+      const acc = map[metric.account_id] || { faturamento: 0, comissao: 0, valorUsado: 0, compras: 0 }
+      acc.faturamento += metric.faturamento
+      acc.comissao += metric.comissao
+      acc.valorUsado += metric.valorUsado
+      acc.compras += metric.compras
+      map[metric.account_id] = acc
+    })
+
+    return Object.entries(map)
+      .map(([accountId, data]) => {
+        const accountName = availableAccounts.find(a => a.accountId === accountId)?.name || accountId
+        const lucro = data.comissao - data.valorUsado
+        const roas = data.valorUsado > 0 ? data.faturamento / data.valorUsado : 0
+        const cpa = data.compras > 0 ? data.valorUsado / data.compras : 0
+        return { accountId, accountName, faturamento: data.faturamento, comissao: data.comissao, valorUsado: data.valorUsado, lucro, roas, cpa }
+      })
+      .sort((a, b) => b.lucro - a.lucro)
+  }, [allMetrics, availableAccounts])
 
   // 🎯 Função para detectar performance geral excelente
   const isExceptionalPerformance = useMemo(() => {
@@ -179,32 +180,31 @@ export function Dashboard() {
                   console.log('🎨 Abrindo configuração de cores...')
                   setColorConfigOpen(true)
                 }}
-                className="flex flex-col items-center justify-center p-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="flex flex-col items-center justify-center p-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
-                <Settings className="h-5 w-5 mb-1" />
+                <Settings className="h-4 w-4 mb-1" />
                 <span className="text-xs font-medium">Cores</span>
               </button>
               <Link
                 href="/vendas"
-                className="flex flex-col items-center justify-center p-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="flex flex-col items-center justify-center p-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
               >
-                <ShoppingBag className="h-5 w-5 mb-1" />
+                <ShoppingBag className="h-4 w-4 mb-1" />
                 <span className="text-xs font-medium">Vendas</span>
               </Link>
-                              <button
-                onClick={testConnectivity}
-                disabled={testLoading}
-                className="flex flex-col items-center justify-center p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              <Link
+                href="/campanhas"
+                className="flex flex-col items-center justify-center p-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                <TestTube className={`h-5 w-5 mb-1 ${testLoading ? 'animate-spin' : ''}`} />
-                <span className="text-xs font-medium">{testLoading ? 'Testing...' : 'Testar'}</span>
-              </button>
-                              <button
+                <Megaphone className="h-4 w-4 mb-1" />
+                <span className="text-xs font-medium">Campanhas</span>
+              </Link>
+              <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="flex flex-col items-center justify-center p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex flex-col items-center justify-center p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <RefreshCw className={`h-5 w-5 mb-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mb-1 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span className="text-xs font-medium">{isRefreshing ? 'Atualizando...' : 'Refresh'}</span>
               </button>
             </div>
@@ -229,14 +229,14 @@ export function Dashboard() {
                 <ShoppingBag className="h-4 w-4" />
                 <span className="text-sm">Vendas</span>
               </Link>
-              <button
-                onClick={testConnectivity}
-                disabled={testLoading}
-                className="flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Testar API"
+              <Link
+                href="/campanhas"
+                className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                title="Resumo de Campanhas"
               >
-                <TestTube className={`h-4 w-4 ${testLoading ? 'animate-spin' : ''}`} />
-              </button>
+                <Megaphone className="h-4 w-4" />
+                <span className="text-sm">Campanhas</span>
+              </Link>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas}
@@ -266,14 +266,13 @@ export function Dashboard() {
                 <ShoppingBag className="h-4 w-4" />
                 <span>Ver Vendas</span>
               </Link>
-              <button
-                onClick={testConnectivity}
-                disabled={testLoading}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              <Link
+                href="/campanhas"
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
               >
-                <TestTube className={`h-4 w-4 ${testLoading ? 'animate-spin' : ''}`} />
-                <span>Testar API</span>
-              </button>
+                <Megaphone className="h-4 w-4" />
+                <span>Campanhas</span>
+              </Link>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas}
@@ -286,35 +285,6 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Test Results */}
-        {testResults && (
-          <div className="mb-4 md:mb-6">
-            <div className={`border rounded-lg p-4 ${testResults.success ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className={`text-sm font-medium ${testResults.success ? 'text-green-300' : 'text-red-300'}`}>
-                  Teste de Conectividade - {testResults.success ? 'Sucesso' : 'Falha'}
-                </h3>
-                <button
-                  onClick={() => setTestResults(null)}
-                  className="text-gray-400 hover:text-gray-300 text-sm"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="text-xs text-gray-300 space-y-1">
-                {testResults.success ? (
-                  <>
-                    <p>✅ Token válido: {testResults.tokenTest?.user?.name || 'Usuário'}</p>
-                    <p>✅ Contas acessíveis: {testResults.summary?.accountsAccessible}/{testResults.summary?.totalAccounts}</p>
-                    <p>✅ Campanhas encontradas: {testResults.summary?.campaignsFound}</p>
-                  </>
-                ) : (
-                  <p>❌ {testResults.error}: {testResults.details}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Date Selector */}
         <div className="mb-4 md:mb-6">
@@ -349,6 +319,9 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Account Summaries */}
+        <AccountSummaryTable summaries={accountSummaries} isLoading={loading.campaigns || loading.vendas} />
 
         {/* Metrics Cards - Sempre visíveis com loading states */}
         {(loading.isInitialLoad || loading.campaigns || loading.vendas) ? (
