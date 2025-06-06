@@ -77,6 +77,7 @@ export function Dashboard() {
     const map: Record<string, { faturamento: number; comissao: number; valorUsado: number; compras: number }> = {}
 
     allMetrics.forEach(metric => {
+
       const acc = map[metric.account_id] || { faturamento: 0, comissao: 0, valorUsado: 0, compras: 0 }
       acc.faturamento += metric.faturamento
       acc.comissao += metric.comissao
@@ -95,6 +96,7 @@ export function Dashboard() {
       })
       .sort((a, b) => b.lucro - a.lucro)
   }, [allMetrics, availableAccounts])
+
 
   // 🎯 Função para detectar performance geral excelente
   const isExceptionalPerformance = useMemo(() => {
