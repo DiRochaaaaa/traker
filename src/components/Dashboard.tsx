@@ -73,12 +73,15 @@ export function Dashboard() {
   const totals = useMemo(() => getTotals(metrics), [metrics, getTotals])
   const plataformaMetrics = useMemo(() => getPlataformaMetrics(), [getPlataformaMetrics])
 
+  const normalizeAccountId = (id: string) => id.replace(/^act_/, '')
+
   const accountSummaries = useMemo<AccountSummary[]>(() => {
     const map: Record<string, { faturamento: number; comissao: number; valorUsado: number; compras: number }> = {}
 
     allMetrics.forEach(metric => {
-
-      const acc = map[metric.account_id] || { faturamento: 0, comissao: 0, valorUsado: 0, compras: 0 }
+      const key = normalizeAccountId(metric.account_id)
+      const acc = map[key] || { faturamento: 0, comissao: 0, valorUsado: 0, compras: 0 }
+      map[key] = acc
       acc.faturamento += metric.faturamento
       acc.comissao += metric.comissao
       acc.valorUsado += metric.valorUsado
