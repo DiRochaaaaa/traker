@@ -2,6 +2,7 @@
 
 import { useFacebookData } from '@/hooks/useFacebookData'
 import { MetricsCard } from './MetricsCard'
+import { Logo } from './Logo'
 import { CampaignsTable } from './CampaignsTable'
 import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { DateSelector } from './DateSelector'
@@ -163,52 +164,46 @@ export function Dashboard() {
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-            <div>
-              <div className="flex flex-col lg:flex-row lg:items-center lg:gap-4">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard Meta Ads</h1>
-                  <p className="text-gray-400 mt-1 text-sm md:text-base">Acompanhe o desempenho das suas campanhas em tempo real</p>
+            <div className="w-full lg:w-auto">
+              <div className="flex flex-col lg:flex-row items-center lg:items-center gap-4">
+                <div className="w-full lg:w-auto">
+                  <Logo />
                 </div>
-                {!loading && getPerformanceBadge() && (
-                  <div className="mt-3 lg:mt-0">
-                    {getPerformanceBadge()}
-                  </div>
-                )}
+                <p className="text-gray-400 text-center lg:text-left text-base md:text-lg lg:ml-6">
+                  Acompanhe o desempenho das suas campanhas em tempo real
+                </p>
               </div>
             </div>
-            {/* Mobile: Grid 2x2 com ícones compactos */}
-            <div className="grid grid-cols-2 gap-2 sm:hidden mobile-button-grid">
+            {!loading && getPerformanceBadge() && (
+              <div className="mt-3 lg:mt-0">
+                {getPerformanceBadge()}
+              </div>
+            )}
+            {/* Mobile: Botões em linha única */}
+            <div className="flex items-center justify-between gap-2 sm:hidden px-1 touch-manipulation">
               <button
                 onClick={() => {
                   console.log('🎨 Abrindo configuração de cores...')
                   setColorConfigOpen(true)
                 }}
-                className="flex flex-col items-center justify-center p-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="flex-1 flex items-center justify-center px-4 py-2.5 bg-gray-800 text-gray-200 rounded-lg hover:bg-gray-700 transition-colors select-none touch-manipulation"
               >
-                <Settings className="h-4 w-4 mb-1" />
-                <span className="text-xs font-medium">Cores</span>
+                <Settings className="h-5 w-5 pointer-events-none" />
               </button>
+              
               <Link
                 href="/vendas"
-                className="flex flex-col items-center justify-center p-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="flex-1 flex items-center justify-center px-4 py-2.5 bg-gray-800 text-gray-200 rounded-lg hover:bg-gray-700 transition-colors select-none touch-manipulation"
               >
-                <ShoppingBag className="h-4 w-4 mb-1" />
-                <span className="text-xs font-medium">Vendas</span>
+                <ShoppingBag className="h-5 w-5 pointer-events-none" />
               </Link>
-              <Link
-                href="/campanhas"
-                className="flex flex-col items-center justify-center p-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Megaphone className="h-4 w-4 mb-1" />
-                <span className="text-xs font-medium">Campanhas</span>
-              </Link>
+
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="flex flex-col items-center justify-center p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 flex items-center justify-center px-4 py-2.5 bg-gray-800 text-gray-200 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors select-none touch-manipulation"
               >
-                <RefreshCw className={`h-4 w-4 mb-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="text-xs font-medium">{isRefreshing ? 'Atualizando...' : 'Refresh'}</span>
+                <RefreshCw className={`h-5 w-5 pointer-events-none ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
 
@@ -250,39 +245,32 @@ export function Dashboard() {
               </button>
             </div>
 
-            {/* Desktop: Layout completo */}
-            <div className="hidden lg:flex items-center space-x-2 justify-end">
+            {/* Desktop: Layout clean e consistente */}
+            <div className="hidden sm:flex items-center gap-2">
               <button
                 onClick={() => {
                   console.log('🎨 Abrindo configuração de cores...')
                   setColorConfigOpen(true)
                 }}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                className="flex items-center justify-center px-4 py-2.5 bg-gray-800 text-gray-200 rounded-lg hover:bg-gray-700 transition-colors"
               >
-                <Settings className="h-4 w-4" />
-                <span>Cores</span>
+                <Settings className="h-5 w-5" />
               </button>
+              
               <Link
                 href="/vendas"
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                className="flex items-center justify-center px-4 py-2.5 bg-gray-800 text-gray-200 rounded-lg hover:bg-gray-700 transition-colors"
               >
-                <ShoppingBag className="h-4 w-4" />
-                <span>Ver Vendas</span>
+                <ShoppingBag className="h-5 w-5" />
               </Link>
-              <Link
-                href="/campanhas"
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-              >
-                <Megaphone className="h-4 w-4" />
-                <span>Campanhas</span>
-              </Link>
+
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex items-center justify-center px-4 py-2.5 bg-gray-800 text-gray-200 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={(isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas) ? 'Carregando...' : 'Atualizar'}
               >
-                <RefreshCw className={`h-4 w-4 ${(isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas) ? 'animate-spin' : ''}`} />
-                <span>{(isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas) ? 'Carregando...' : 'Atualizar'}</span>
+                <RefreshCw className={`h-5 w-5 ${(isRefreshing || loading.isInitialLoad || loading.campaigns || loading.vendas) ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>

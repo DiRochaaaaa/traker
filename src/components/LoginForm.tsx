@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Lock, Eye, EyeOff, Shield } from 'lucide-react'
+import { Lock, Eye, EyeOff } from 'lucide-react'
+import { Logo } from './Logo'
 
 interface LoginFormProps {
   onLogin: () => void
@@ -46,10 +47,9 @@ export function LoginForm({ onLogin }: LoginFormProps) {
         <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-900/30 rounded-full border border-blue-500/20 mb-4">
-              <Shield className="h-8 w-8 text-blue-400" />
+            <div className="flex justify-center -mt-4 -mx-8 mb-6">
+              <Logo className="scale-100" />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Meta Ads Tracker</h1>
             <p className="text-gray-400">Digite a senha para acessar o dashboard</p>
           </div>
 
