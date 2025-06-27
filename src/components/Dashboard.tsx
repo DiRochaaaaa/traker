@@ -314,6 +314,57 @@ export function Dashboard() {
         {/* Account Summaries */}
         <AccountSummaryTable summaries={accountSummaries} isLoading={loading.campaigns || loading.vendas} />
 
+        {/* Platform Metrics - Vendas por Plataforma */}
+        {!loading.isInitialLoad && !loading.campaigns && !loading.vendas && plataformaMetrics.length > 0 && (
+          <div className="mb-6 md:mb-8">
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6">
+              <h3 className="text-lg md:text-xl font-semibold text-white mb-4">Vendas por Plataforma</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="text-left text-gray-300 py-3 px-2">Plataforma</th>
+                      <th className="text-right text-gray-300 py-3 px-2">Vendas</th>
+                      <th className="text-right text-gray-300 py-3 px-2">Faturamento</th>
+                      <th className="text-right text-gray-300 py-3 px-2">Comissão</th>
+                      <th className="text-right text-gray-300 py-3 px-2">Ticket Médio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plataformaMetrics.map((plataforma, index) => (
+                      <tr key={index} className="border-b border-gray-700/50">
+                        <td className="py-3 px-2 text-white font-medium">{plataforma.plataforma}</td>
+                        <td className="py-3 px-2 text-right text-gray-300">{plataforma.vendas}</td>
+                        <td className="py-3 px-2 text-right text-green-400 font-medium">
+                          {new Intl.NumberFormat('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL' 
+                          }).format(plataforma.faturamento)}
+                        </td>
+                        <td className="py-3 px-2 text-right text-orange-400">
+                          {new Intl.NumberFormat('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL' 
+                          }).format(plataforma.comissao)}
+                        </td>
+                        <td className="py-3 px-2 text-right text-blue-400">
+                          {plataforma.vendas > 0 
+                            ? new Intl.NumberFormat('pt-BR', { 
+                                style: 'currency', 
+                                currency: 'BRL' 
+                              }).format(plataforma.faturamento / plataforma.vendas)
+                            : 'R$ 0,00'
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Metrics Cards - Sempre visíveis com loading states */}
         {(loading.isInitialLoad || loading.campaigns || loading.vendas) ? (
           <>
@@ -519,56 +570,7 @@ export function Dashboard() {
               />
             </div>
 
-            {/* Platform Metrics */}
-            {plataformaMetrics.length > 0 && (
-              <div className="mb-6 md:mb-8">
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6">
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-4">Vendas por Plataforma</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-700">
-                          <th className="text-left text-gray-300 py-3 px-2">Plataforma</th>
-                          <th className="text-right text-gray-300 py-3 px-2">Vendas</th>
-                          <th className="text-right text-gray-300 py-3 px-2">Faturamento</th>
-                          <th className="text-right text-gray-300 py-3 px-2">Comissão</th>
-                          <th className="text-right text-gray-300 py-3 px-2">Ticket Médio</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {plataformaMetrics.map((plataforma, index) => (
-                          <tr key={index} className="border-b border-gray-700/50">
-                            <td className="py-3 px-2 text-white font-medium">{plataforma.plataforma}</td>
-                            <td className="py-3 px-2 text-right text-gray-300">{plataforma.vendas}</td>
-                            <td className="py-3 px-2 text-right text-green-400 font-medium">
-                              {new Intl.NumberFormat('pt-BR', { 
-                                style: 'currency', 
-                                currency: 'BRL' 
-                              }).format(plataforma.faturamento)}
-                            </td>
-                            <td className="py-3 px-2 text-right text-orange-400">
-                              {new Intl.NumberFormat('pt-BR', { 
-                                style: 'currency', 
-                                currency: 'BRL' 
-                              }).format(plataforma.comissao)}
-                            </td>
-                            <td className="py-3 px-2 text-right text-blue-400">
-                              {plataforma.vendas > 0 
-                                ? new Intl.NumberFormat('pt-BR', { 
-                                    style: 'currency', 
-                                    currency: 'BRL' 
-                                  }).format(plataforma.faturamento / plataforma.vendas)
-                                : 'R$ 0,00'
-                              }
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
+
 
             {/* Campaigns Table */}
             <CampaignsTable campaigns={metrics} />
