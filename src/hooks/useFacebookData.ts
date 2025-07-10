@@ -39,6 +39,8 @@ export interface CampaignMetrics {
   faturamento: number
   comissao: number
   ticketMedio: number
+  ticketMedioBase: number
+  taxaUpsellTicket: number
   roas: number
   lucro: number
   upsellCount: number
@@ -54,6 +56,12 @@ export interface PlataformaMetrics {
   vendas: number
   faturamento: number
   comissao: number
+  faturamentoMain: number
+  ticketMedio: number
+  ticketMedioBase: number
+  taxaUpsellTicket: number
+  upsellCount: number
+  orderbumpCount: number
 }
 
 export interface LoadingStates {
@@ -372,11 +380,24 @@ export function useFacebookData() {
         return tipo.includes('orderbump') || tipo.includes('order-bump') || tipo.includes('bump')
       })
       
-      // Calcular faturamento total (main + orderbump + upsell)
-      const faturamentoTotal = campaignVendas.reduce((total, venda) => {
+      // Calcular faturamentos separados por tipo
+      const faturamentoMain = vendasMain.reduce((total, venda) => {
         const valor = parseMonetaryValue(venda.faturamento_bruto || null)
         return total + valor
       }, 0)
+      
+      const faturamentoUpsell = vendasUpsell.reduce((total, venda) => {
+        const valor = parseMonetaryValue(venda.faturamento_bruto || null)
+        return total + valor
+      }, 0)
+      
+      const faturamentoOrderbump = vendasOrderbump.reduce((total, venda) => {
+        const valor = parseMonetaryValue(venda.faturamento_bruto || null)
+        return total + valor
+      }, 0)
+      
+      // Calcular faturamento total (main + orderbump + upsell)
+      const faturamentoTotal = faturamentoMain + faturamentoUpsell + faturamentoOrderbump
       
       // Calcular comissões totais
       const comissoesTotal = campaignVendas.reduce((total, venda) => {
@@ -399,8 +420,14 @@ export function useFacebookData() {
       const finalCompras = comprasMain // Vendas principais do Supabase
       const finalCpa = spend > 0 && finalCompras > 0 ? spend / finalCompras : 0
       
-      // Ticket médio = faturamento total / vendas main
+      // Calcular tickets médios
+      const ticketMedioBase = finalCompras > 0 ? faturamentoMain / finalCompras : 0
       const ticketMedio = finalCompras > 0 ? faturamentoTotal / finalCompras : 0
+      
+      // Calcular taxa de upsell no ticket médio
+      const taxaUpsellTicket = ticketMedioBase > 0 
+        ? ((ticketMedio - ticketMedioBase) / ticketMedioBase) * 100 
+        : 0
       
       const metrics = {
         name: campaign.name,
@@ -413,6 +440,8 @@ export function useFacebookData() {
         faturamento: faturamentoTotal, // Soma de todos os tipos
         comissao: comissoesTotal, // Total de comissões
         ticketMedio, // Faturamento total / vendas main
+        ticketMedioBase, // Faturamento main / vendas main
+        taxaUpsellTicket, // Taxa de aumento do ticket médio por upsells
         roas,
         lucro,
         upsellCount,
@@ -559,6 +588,8 @@ export function useFacebookData() {
       cpm: acc.cpm + metric.cpm,
       cpa: acc.cpa + metric.cpa,
       ticketMedio: acc.ticketMedio + metric.ticketMedio,
+      ticketMedioBase: acc.ticketMedioBase + metric.ticketMedioBase,
+      taxaUpsellTicket: acc.taxaUpsellTicket + metric.taxaUpsellTicket,
       roas: 0 // Será calculado depois
     }), {
       dailyBudget: 0,
@@ -572,16 +603,31 @@ export function useFacebookData() {
       cpm: 0,
       cpa: 0,
       ticketMedio: 0,
+      ticketMedioBase: 0,
+      taxaUpsellTicket: 0,
       roas: 0
     })
     
     // Calcular médias corretas
     const campaignCount = metrics.length
+    
+    // Calcular faturamento base real (somar faturamento das vendas principais de cada campanha)
+    const faturamentoBase = metrics.reduce((acc, metric) => {
+      // Para cada campanha, calcular o faturamento base: ticketMedioBase * compras
+      return acc + (metric.ticketMedioBase * metric.compras)
+    }, 0)
+    
+    const taxaUpsellConsolidada = faturamentoBase > 0 
+      ? ((totals.faturamento - faturamentoBase) / faturamentoBase) * 100 
+      : 0
+    
     return {
       ...totals,
       cpm: campaignCount > 0 ? totals.cpm / campaignCount : 0,
       cpa: campaignCount > 0 ? totals.cpa / campaignCount : 0,
       ticketMedio: totals.compras > 0 ? totals.faturamento / totals.compras : 0,
+      ticketMedioBase: campaignCount > 0 ? totals.ticketMedioBase / campaignCount : 0,
+      taxaUpsellTicket: taxaUpsellConsolidada, // Taxa consolidada baseada nos totais
       roas: totals.valorUsado > 0 ? totals.faturamento / totals.valorUsado : 0
     }
   }, [])
@@ -595,26 +641,59 @@ export function useFacebookData() {
           plataforma,
           vendas: 0,
           faturamento: 0,
-          comissao: 0
+          faturamentoMain: 0,
+          comissao: 0,
+          upsellCount: 0,
+          orderbumpCount: 0,
+          ticketMedio: 0,
+          ticketMedioBase: 0,
+          taxaUpsellTicket: 0
         }
       }
       
-      // Contar apenas vendas main para o número de vendas
       const tipo = venda.tipo?.toLowerCase() || ''
       const isMainSale = tipo === 'main' || tipo === '' || (!tipo.includes('upsell') && !tipo.includes('orderbump') && !tipo.includes('bump'))
+      const isUpsell = tipo.includes('upsell')
+      const isOrderbump = tipo.includes('orderbump') || tipo.includes('bump')
+      const faturamento = parseMonetaryValue(venda.faturamento_bruto || null)
       
+      // Contar vendas por tipo
       if (isMainSale) {
         acc[plataforma].vendas += 1
+        acc[plataforma].faturamentoMain += faturamento
+      } else if (isUpsell) {
+        acc[plataforma].upsellCount += 1
+      } else if (isOrderbump) {
+        acc[plataforma].orderbumpCount += 1
       }
       
       // Somar todo o faturamento (main + upsell + orderbump)
-      acc[plataforma].faturamento += parseMonetaryValue(venda.faturamento_bruto || null)
+      acc[plataforma].faturamento += faturamento
       acc[plataforma].comissao += parseMonetaryValue(venda.comissao || null)
       
       return acc
     }, {} as Record<string, PlataformaMetrics>)
     
-    return Object.values(plataformasMap).sort((a, b) => b.faturamento - a.faturamento)
+    // Calcular métricas derivadas para cada plataforma
+    const plataformasArray = Object.values(plataformasMap).map(plataforma => {
+      // Calcular tickets médios
+      const ticketMedioBase = plataforma.vendas > 0 ? plataforma.faturamentoMain / plataforma.vendas : 0
+      const ticketMedio = plataforma.vendas > 0 ? plataforma.faturamento / plataforma.vendas : 0
+      
+      // Calcular taxa de upsell
+      const taxaUpsellTicket = ticketMedioBase > 0 
+        ? ((ticketMedio - ticketMedioBase) / ticketMedioBase) * 100 
+        : 0
+      
+      return {
+        ...plataforma,
+        ticketMedio,
+        ticketMedioBase,
+        taxaUpsellTicket
+      }
+    })
+    
+    return plataformasArray.sort((a, b) => b.faturamento - a.faturamento)
   }, [vendas])
 
   const updatePeriod = useCallback((period: DatePeriod) => {

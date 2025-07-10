@@ -8,7 +8,7 @@ import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { DateSelector } from './DateSelector'
 import { ColorConfigModal } from './ColorConfigModal'
 import { PlatformMobileCard } from './PlatformMobileCard'
-import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, DollarSign, TrendingUp, Receipt } from 'lucide-react'
+import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, DollarSign, TrendingUp, Receipt, ArrowUpCircle } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import BillingInfoCard from './BillingInfoCard'
@@ -363,6 +363,12 @@ export function Dashboard() {
                         Ticket Médio
                       </div>
                     </th>
+                    <th className="px-3 py-2 text-right text-gray-300">
+                      <div className="inline-flex items-center gap-1">
+                        <ArrowUpCircle className="h-3 w-3" />
+                        Impacto Upsell
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-gray-800 divide-y divide-gray-700">
@@ -372,6 +378,11 @@ export function Dashboard() {
                         {platform.plataforma}
                         <div className="text-xs text-gray-400">
                           {platform.vendas} {platform.vendas === 1 ? 'venda' : 'vendas'}
+                          {(platform.upsellCount > 0 || platform.orderbumpCount > 0) && (
+                            <span className="ml-2 text-cyan-400">
+                              • {platform.upsellCount}ups {platform.orderbumpCount}bump
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-3 py-3 text-right text-blue-400 font-medium">{platform.vendas}</td>
@@ -388,13 +399,27 @@ export function Dashboard() {
                         }).format(platform.comissao)}
                       </td>
                       <td className="px-3 py-3 text-right text-purple-400 font-medium">
-                        {platform.vendas > 0 
-                          ? new Intl.NumberFormat('pt-BR', { 
-                              style: 'currency', 
-                              currency: 'BRL' 
-                            }).format(platform.faturamento / platform.vendas)
-                          : 'R$ 0,00'
-                        }
+                        {new Intl.NumberFormat('pt-BR', { 
+                          style: 'currency', 
+                          currency: 'BRL' 
+                        }).format(platform.ticketMedio)}
+                      </td>
+                      <td className="px-3 py-3 text-right font-medium">
+                        {platform.taxaUpsellTicket > 0 ? (
+                          <div className="text-right">
+                            <span className="text-green-400 font-bold">
+                              +{platform.taxaUpsellTicket.toFixed(1)}%
+                            </span>
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              Base: {new Intl.NumberFormat('pt-BR', { 
+                                style: 'currency', 
+                                currency: 'BRL' 
+                              }).format(platform.ticketMedioBase)}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">-</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -602,10 +627,14 @@ export function Dashboard() {
                 icon="roas"
               />
               <MetricsCard
-                title="Taxa de Orderbump"
-                value={totals.compras > 0 ? (totals.orderbumpCount / totals.compras) * 100 : 0}
+                title="Impacto Upsell no Ticket"
+                value={totals.taxaUpsellTicket}
                 format="percentage"
                 icon="roas"
+                additionalData={{
+                  ticketBase: totals.ticketMedioBase,
+                  ticketAtual: totals.ticketMedio
+                }}
               />
             </div>
 

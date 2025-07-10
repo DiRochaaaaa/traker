@@ -12,6 +12,8 @@ interface MetricsCardProps {
   isLoading?: boolean
   additionalData?: {
     faturamento?: number
+    ticketBase?: number
+    ticketAtual?: number
   }
 }
 
@@ -48,6 +50,7 @@ export function MetricsCard({ title, value, change, format = 'number', icon, isH
   
   const isLucroCard = title === 'Lucro Total'
   const isROASCard = title === 'ROAS Médio'
+  const isUpsellImpactCard = title === 'Impacto Upsell no Ticket'
   
   // Para ROAS, usar o valor direto. Para lucro, precisamos do ROAS para determinar a cor
   const roasForColors = isROASCard
@@ -162,6 +165,18 @@ export function MetricsCard({ title, value, change, format = 'number', icon, isH
                     {getProfitPercentage()}% do faturamento
                   </span>
                 )}
+              </div>
+            ) : isUpsellImpactCard ? (
+              <div className="flex flex-col">
+                <span className={getValueColor()}>
+                  {lucroValue > 0 ? `+${formatValue(value)}` : formatValue(value)}
+                </span>
+                                 {additionalData?.ticketBase && additionalData?.ticketAtual && (
+                   <div className="text-xs text-gray-400 mt-1 space-y-0.5">
+                     <div>Base: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(additionalData.ticketBase)}</div>
+                     <div>Atual: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(additionalData.ticketAtual)}</div>
+                   </div>
+                 )}
               </div>
             ) : (
               <span className={getValueColor()}>
