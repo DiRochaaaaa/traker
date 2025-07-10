@@ -11,6 +11,7 @@ import { PlatformMobileCard } from './PlatformMobileCard'
 import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, DollarSign, TrendingUp, Receipt } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
+import BillingInfoCard from './BillingInfoCard'
 
 interface AccountInfo {
   id: string
@@ -277,6 +278,9 @@ export function Dashboard() {
           </div>
         </div>
 
+
+        {/* Billing Info */}
+        <BillingInfoCard accounts={availableAccounts.map(a => ({ id: `act_${a.accountId}`, name: a.name }))} />
 
         {/* Date Selector */}
         <div className="mb-4 md:mb-6">
