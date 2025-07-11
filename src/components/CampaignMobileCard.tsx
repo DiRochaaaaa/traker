@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, TrendingDown, DollarSign, Target, MousePointerClick } from 'lucide-react'
+import { TrendingDown, DollarSign, Target, MousePointerClick } from 'lucide-react'
 import { CampaignMetrics } from '@/hooks/useFacebookData'
 import { isHighPerformance as checkHighPerformance } from '@/config/performanceColors'
 import { CampaignActions } from './CampaignActions'
@@ -12,7 +12,6 @@ interface CampaignMobileCardProps {
 }
 
 export function CampaignMobileCard({ campaign, onRefresh }: CampaignMobileCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
 
   const formatCurrency = (value: number) => {
@@ -72,173 +71,67 @@ export function CampaignMobileCard({ campaign, onRefresh }: CampaignMobileCardPr
     return 'bg-gray-800/50 border border-gray-700/50'
   }
 
-  return (
-    <div className={`${getCampaignStyle()} rounded-lg transition-all duration-300`}>
-      {/* Header Compacto - Sempre Visível */}
-      <div 
-        className="p-2.5 cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex-1 min-w-0 pr-2">
-            <div className="flex items-center gap-2">
-                             <h4 className="text-xs font-semibold text-white truncate leading-tight">
-                 {campaign.name}
-               </h4>
-              {isHighPerformanceCampaign(campaign) && (
-                <span className="text-green-400 text-sm">🏆</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(campaign.status)}
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4 text-gray-400" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-gray-400" />
-            )}
-          </div>
-        </div>
+  const MetricSquare = ({ label, value, color, onClick }: { label: string; value: string; color?: string; onClick?: () => void }) => (
+    <div 
+      className={`text-center bg-gray-800/30 rounded-md p-2 ${onClick ? 'cursor-pointer hover:bg-gray-700/50' : ''}`}
+      onClick={onClick}
+    >
+      <p className="text-xs text-gray-400 leading-none mb-1">{label}</p>
+      <p className={`text-sm font-bold leading-none ${color || 'text-white'}`}>{value}</p>
+    </div>
+  );
 
-        {/* Métricas Principais - Mobile: Comissão, Gasto, Lucro, ROAS */}
-         <div className="grid grid-cols-4 gap-1">
-           {/* 1. Comissão */}
-           <div className="text-center bg-gray-800/30 rounded p-1">
-             <DollarSign className="h-2.5 w-2.5 text-green-400 mx-auto mb-0.5" />
-             <p className="text-xs text-gray-400 mb-0.5 leading-none">Com.</p>
-             <p className="text-xs font-bold text-green-400 leading-none">{formatCurrency(campaign.comissao)}</p>
-           </div>
-           
-           {/* 2. Gasto */}
-           <div className="text-center bg-gray-800/30 rounded p-1">
-             <TrendingDown className="h-2.5 w-2.5 text-red-400 mx-auto mb-0.5" />
-             <p className="text-xs text-gray-400 mb-0.5 leading-none">Gasto</p>
-             <p className="text-xs font-bold text-red-400 leading-none">{formatCurrency(campaign.valorUsado)}</p>
-           </div>
-           
-           {/* 3. Lucro */}
-           <div className="text-center bg-gray-800/30 rounded p-1">
-             <Target className="h-2.5 w-2.5 text-purple-400 mx-auto mb-0.5" />
-             <p className="text-xs text-gray-400 mb-0.5 leading-none">Lucro</p>
-             <p className={`text-xs font-bold leading-none ${getProfitColor(campaign.lucro, campaign.roas)}`}>
-               {formatCurrency(campaign.lucro)}
-             </p>
-           </div>
-           
-           {/* 4. ROAS */}
-           <div className="text-center bg-gray-800/30 rounded p-1">
-             <MousePointerClick className="h-2.5 w-2.5 text-orange-400 mx-auto mb-0.5" />
-             <p className="text-xs text-gray-400 mb-0.5 leading-none">ROAS</p>
-             <p className={`text-xs font-bold leading-none ${getRoasColor(campaign.roas)}`}>
-               {formatNumber(campaign.roas)}x
-             </p>
-           </div>
-         </div>
+  return (
+    <div className={`${getCampaignStyle()} rounded-lg transition-all duration-300 p-2.5`}>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-semibold text-white leading-snug">
+            {campaign.name}
+          </h4>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {getStatusBadge(campaign.status)}
+          <CampaignActions campaign={campaign} onActionComplete={onRefresh} variant="minimal" />
+        </div>
       </div>
 
-              {/* Detalhes Expandidos */}
-        {isExpanded && (
-          <div className="border-t border-gray-700/50 p-2.5 space-y-2.5">
-          {/* Performance Detalhada */}
-          <div>
-            <h6 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-1">
-              📊 Performance Detalhada
-            </h6>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-gray-800/30 rounded p-2">
-                <p className="text-xs text-gray-400">Compras</p>
-                <p className="text-sm font-semibold text-white">{campaign.compras}</p>
-              </div>
-              <div className="bg-gray-800/30 rounded p-2">
-                <p className="text-xs text-gray-400">CPA</p>
-                <p className="text-sm font-semibold text-white">{formatCurrency(campaign.cpa)}</p>
-              </div>
-              <div className="bg-gray-800/30 rounded p-2">
-                <p className="text-xs text-gray-400">Ticket Médio</p>
-                <p className="text-sm font-semibold text-blue-400">{formatCurrency(campaign.ticketMedio)}</p>
-              </div>
-              <div className="bg-gray-800/30 rounded p-2">
-                <p className="text-xs text-gray-400">CPM</p>
-                <p className="text-sm font-semibold text-white">{formatCurrency(campaign.cpm)}</p>
-              </div>
-            </div>
-          </div>
+      {/* Métricas em Grade */}
+      <div className="grid grid-cols-3 gap-2">
+        <MetricSquare label="Lucro" value={formatCurrency(campaign.lucro)} color={getProfitColor(campaign.lucro, campaign.roas)} />
+        <MetricSquare label="ROAS" value={`${formatNumber(campaign.roas)}x`} color={getRoasColor(campaign.roas)} />
+        <MetricSquare label="Comissão" value={formatCurrency(campaign.comissao)} color="text-green-400" />
+        
+        <MetricSquare label="Gasto" value={formatCurrency(campaign.valorUsado)} color="text-red-400" />
+        <MetricSquare label="CPA" value={formatCurrency(campaign.cpa)} />
+        <MetricSquare label="CPI" value={formatCurrency(campaign.cpi)} />
 
-          {/* Investimento */}
-          <div>
-            <h6 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-1">
-              💰 Investimento
-            </h6>
-            <div className="grid grid-cols-2 gap-2">
-              {/* Budget Diário - CLICÁVEL */}
-              <div 
-                className="bg-gray-800/30 rounded p-2 cursor-pointer hover:bg-blue-900/20 transition-colors border border-transparent hover:border-blue-500/30"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowBudgetModal(true)
-                }}
-                title="Clique para alterar o orçamento"
-              >
-                <div className="flex items-center gap-1">
-                  <p className="text-xs text-gray-400">Budget Diário</p>
-                  <DollarSign className="h-3 w-3 text-blue-400" />
-                </div>
-                <p className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors">
-                  {formatCurrency(campaign.dailyBudget)}
-                </p>
-                <p className="text-xs text-blue-600 mt-0.5">Clique para editar</p>
-              </div>
-              <div className="bg-gray-800/30 rounded p-2">
-                <p className="text-xs text-gray-400">Valor Usado</p>
-                <p className="text-sm font-semibold text-white">{formatCurrency(campaign.valorUsado)}</p>
-              </div>
-            </div>
-          </div>
+        <MetricSquare label="Compras" value={String(campaign.compras)} />
+        <MetricSquare label="T. Médio" value={formatCurrency(campaign.ticketMedio)} color="text-blue-400" />
+        <MetricSquare label="CPM" value={formatCurrency(campaign.cpm)} />
 
-          {/* Upsells/Orderbumps se existirem */}
-          {(campaign.upsellCount > 0 || campaign.orderbumpCount > 0) && (
-            <div>
-              <h6 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-1">
-                🎯 Extras
-              </h6>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-gray-800/30 rounded p-2">
-                  <p className="text-xs text-gray-400">Upsells</p>
-                  <p className="text-sm font-semibold text-purple-400">{campaign.upsellCount}</p>
-                </div>
-                <div className="bg-gray-800/30 rounded p-2">
-                  <p className="text-xs text-gray-400">Orderbumps</p>
-                  <p className="text-sm font-semibold text-purple-400">{campaign.orderbumpCount}</p>
-                </div>
-              </div>
-            </div>
-          )}
+        <MetricSquare 
+          label="Budget" 
+          value={formatCurrency(campaign.dailyBudget)} 
+          color="text-blue-400"
+          onClick={() => setShowBudgetModal(true)}
+        />
+        {(campaign.upsellCount > 0 || campaign.orderbumpCount > 0) && (
+           <MetricSquare label="Upsells" value={String(campaign.upsellCount)} color="text-purple-400" />
+        )}
+        {(campaign.upsellCount > 0 || campaign.orderbumpCount > 0) && (
+           <MetricSquare label="Orderbumps" value={String(campaign.orderbumpCount)} color="text-purple-400" />
+        )}
+      </div>
 
-          {/* Ações */}
-          <div>
-            <h6 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-1">
-              ⚙️ Ações
-            </h6>
-            <div className="bg-gray-800/30 rounded p-2">
-              <div className="text-xs text-gray-400 mb-2">
-                Tipo: <span className="text-white font-medium">{campaign.budgetType}</span>
-              </div>
-              <CampaignActions 
-                campaign={campaign} 
-                onActionComplete={onRefresh}
-                showBudgetModal={showBudgetModal}
-                onCloseBudgetModal={() => setShowBudgetModal(false)}
-              />
-            </div>
-          </div>
-
-          {/* Info IDs */}
-          <div className="text-xs text-gray-500 text-center pt-2 border-t border-gray-700/30 space-y-0.5">
-            <div>Account: {campaign.account_id}</div>
-            <div>Campanha: {campaign.campaign_id}</div>
-          </div>
-        </div>
-      )}
+      {/* O modal é renderizado aqui, mas invisível até ser ativado */}
+      <CampaignActions 
+        campaign={campaign} 
+        showBudgetModal={showBudgetModal}
+        onCloseBudgetModal={() => setShowBudgetModal(false)}
+        onActionComplete={onRefresh}
+        variant="budget-only"
+      />
     </div>
-  )
+  );
 }

@@ -8,7 +8,7 @@ import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { DateSelector } from './DateSelector'
 import { ColorConfigModal } from './ColorConfigModal'
 import { PlatformMobileCard } from './PlatformMobileCard'
-import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, DollarSign, TrendingUp, Receipt, ArrowUpCircle } from 'lucide-react'
+import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, DollarSign, TrendingUp, Receipt, ArrowUpCircle, ArrowUp } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import BillingInfoCard from './BillingInfoCard'
@@ -94,7 +94,7 @@ export function Dashboard() {
       .map(([id, data]) => {
         const accountName = availableAccounts.find(a => a.accountId === id)?.name || id
         const lucro = data.comissao - data.valorUsado
-        const roas = data.valorUsado > 0 ? data.faturamento / data.valorUsado : 0
+        const roas = data.valorUsado > 0 ? data.comissao / data.valorUsado : 0
         const cpa = data.compras > 0 ? data.valorUsado / data.compras : 0
         return { accountId: id, accountName, faturamento: data.faturamento, comissao: data.comissao, valorUsado: data.valorUsado, lucro, roas, cpa }
       })
@@ -176,7 +176,7 @@ export function Dashboard() {
                 </p>
               </div>
             </div>
-            {!loading && getPerformanceBadge() && (
+            {!loading.isInitialLoad && getPerformanceBadge() && (
               <div className="mt-3 lg:mt-0">
                 {getPerformanceBadge()}
               </div>
@@ -248,7 +248,7 @@ export function Dashboard() {
             </div>
 
             {/* Desktop: Layout clean e consistente */}
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2">
               <button
                 onClick={() => {
                   console.log('🎨 Abrindo configuração de cores...')
@@ -543,8 +543,6 @@ export function Dashboard() {
           </>
         ) : (
           <>
-
-
             {/* Main Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
               <MetricsCard
@@ -563,7 +561,7 @@ export function Dashboard() {
                 additionalData={{ faturamento: totals.faturamento }}
               />
               <MetricsCard
-                title="ROAS Médio"
+                title="ROAS Médio (Comissão)"
                 value={totals.roas}
                 format="number"
                 icon="roas"
@@ -637,8 +635,6 @@ export function Dashboard() {
                 }}
               />
             </div>
-
-
 
             {/* Campaigns Table */}
             <CampaignsTable campaigns={metrics} />

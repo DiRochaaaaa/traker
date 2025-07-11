@@ -287,6 +287,14 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
               </th>
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
                 <button 
+                  onClick={() => handleSort('cpi')}
+                  className="flex items-center gap-1 hover:text-white transition-colors"
+                >
+                  CPI {getSortIcon('cpi')}
+                </button>
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[7%]">
+                <button 
                   onClick={() => handleSort('faturamento')}
                   className="flex items-center gap-1 hover:text-white transition-colors"
                 >
@@ -401,6 +409,9 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
                 </td>
                 <td className="px-2 py-3 text-sm text-gray-300">
                   {formatCurrency(campaign.cpa)}
+                </td>
+                <td className="px-2 py-3 text-sm text-gray-300">
+                  {formatCurrency(campaign.cpi)}
                 </td>
                 <td className="px-2 py-3 text-sm text-gray-300">
                   {formatCurrency(campaign.faturamento)}

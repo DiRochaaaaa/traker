@@ -36,6 +36,7 @@ export interface CampaignMetrics {
   cpm: number
   compras: number
   cpa: number
+  cpi: number // Custo por Inicialização de Compra
   faturamento: number
   comissao: number
   ticketMedio: number
@@ -55,13 +56,13 @@ export interface PlataformaMetrics {
   plataforma: string
   vendas: number
   faturamento: number
-  comissao: number
   faturamentoMain: number
+  comissao: number
+  upsellCount: number
+  orderbumpCount: number
   ticketMedio: number
   ticketMedioBase: number
   taxaUpsellTicket: number
-  upsellCount: number
-  orderbumpCount: number
 }
 
 export interface LoadingStates {
@@ -410,8 +411,8 @@ export function useFacebookData() {
       const upsellCount = vendasUpsell.length
       const orderbumpCount = vendasOrderbump.length
       
-      // Calcular ROAS (Return on Ad Spend) baseado no faturamento total
-      const roas = spend > 0 ? faturamentoTotal / spend : (faturamentoTotal > 0 ? Infinity : 0)
+      // Calcular ROAS (Return on Ad Spend) baseado na COMISSÃO
+      const roas = spend > 0 ? comissoesTotal / spend : (comissoesTotal > 0 ? Infinity : 0)
       
       // Calcular Lucro (Comissão - Valor usado)
       const lucro = comissoesTotal - spend
@@ -429,6 +430,12 @@ export function useFacebookData() {
         ? ((ticketMedio - ticketMedioBase) / ticketMedioBase) * 100 
         : 0
       
+      // Calcula o Custo por Inicialização de Compra (CPI)
+      const costPerInitiateCheckout = campaign.insights?.data?.[0]?.cost_per_action_type?.find(
+        (a) => a.action_type === 'initiate_checkout'
+      )
+      const cpi = costPerInitiateCheckout ? parseFloat(costPerInitiateCheckout.value) : 0
+
       const metrics = {
         name: campaign.name,
         status: campaign.effective_status || campaign.status,
@@ -437,6 +444,7 @@ export function useFacebookData() {
         cpm,
         compras: finalCompras, // 🎯 SUPABASE: Vendas principais em tempo real
         cpa: finalCpa, // 🎯 SUPABASE: CPA baseado em vendas reais
+        cpi, // Adicionado
         faturamento: faturamentoTotal, // Soma de todos os tipos
         comissao: comissoesTotal, // Total de comissões
         ticketMedio, // Faturamento total / vendas main
@@ -626,9 +634,9 @@ export function useFacebookData() {
       cpm: campaignCount > 0 ? totals.cpm / campaignCount : 0,
       cpa: campaignCount > 0 ? totals.cpa / campaignCount : 0,
       ticketMedio: totals.compras > 0 ? totals.faturamento / totals.compras : 0,
-      ticketMedioBase: campaignCount > 0 ? totals.ticketMedioBase / campaignCount : 0,
+      ticketMedioBase: totals.compras > 0 ? (faturamentoBase / totals.compras) : 0,
       taxaUpsellTicket: taxaUpsellConsolidada, // Taxa consolidada baseada nos totais
-      roas: totals.valorUsado > 0 ? totals.faturamento / totals.valorUsado : 0
+      roas: totals.valorUsado > 0 ? totals.comissao / totals.valorUsado : 0
     }
   }, [])
 
@@ -638,16 +646,12 @@ export function useFacebookData() {
       const plataforma = venda.plataforma || 'Não informado'
       if (!acc[plataforma]) {
         acc[plataforma] = {
-          plataforma,
           vendas: 0,
           faturamento: 0,
           faturamentoMain: 0,
           comissao: 0,
           upsellCount: 0,
           orderbumpCount: 0,
-          ticketMedio: 0,
-          ticketMedioBase: 0,
-          taxaUpsellTicket: 0
         }
       }
       
@@ -672,13 +676,20 @@ export function useFacebookData() {
       acc[plataforma].comissao += parseMonetaryValue(venda.comissao || null)
       
       return acc
-    }, {} as Record<string, PlataformaMetrics>)
+    }, {} as Record<string, { 
+        vendas: number; 
+        faturamento: number; 
+        faturamentoMain: number; 
+        comissao: number; 
+        upsellCount: number; 
+        orderbumpCount: number;
+    }>)
     
     // Calcular métricas derivadas para cada plataforma
-    const plataformasArray = Object.values(plataformasMap).map(plataforma => {
+    const plataformasArray = Object.entries(plataformasMap).map(([plataformaName, data]) => {
       // Calcular tickets médios
-      const ticketMedioBase = plataforma.vendas > 0 ? plataforma.faturamentoMain / plataforma.vendas : 0
-      const ticketMedio = plataforma.vendas > 0 ? plataforma.faturamento / plataforma.vendas : 0
+      const ticketMedioBase = data.vendas > 0 ? data.faturamentoMain / data.vendas : 0
+      const ticketMedio = data.vendas > 0 ? data.faturamento / data.vendas : 0
       
       // Calcular taxa de upsell
       const taxaUpsellTicket = ticketMedioBase > 0 
@@ -686,7 +697,8 @@ export function useFacebookData() {
         : 0
       
       return {
-        ...plataforma,
+        plataforma: plataformaName,
+        ...data,
         ticketMedio,
         ticketMedioBase,
         taxaUpsellTicket
@@ -695,6 +707,35 @@ export function useFacebookData() {
     
     return plataformasArray.sort((a, b) => b.faturamento - a.faturamento)
   }, [vendas])
+
+  const getPlataformaTotals = useCallback(() => {
+    const platformMetrics = getPlataformaMetrics()
+    const totals = platformMetrics.reduce(
+      (acc, metric) => {
+        const faturamentoBase = metric.ticketMedio > 0 
+          ? (metric.faturamento / (1 + (metric.taxaUpsellTicket / 100))) 
+          : metric.faturamento
+          
+        acc.faturamento += metric.faturamento
+        acc.comissao += metric.comissao
+        acc.vendas += metric.vendas
+        acc.faturamentoBase += faturamentoBase
+        return acc
+      },
+      { faturamento: 0, comissao: 0, vendas: 0, faturamentoBase: 0 }
+    )
+
+    const ticketMedioBase = totals.vendas > 0 ? totals.faturamentoBase / totals.vendas : 0
+    const ticketMedioFinal = totals.vendas > 0 ? totals.faturamento / totals.vendas : 0
+    
+    return {
+      faturamento: totals.faturamento,
+      comissao: totals.comissao,
+      vendas: totals.vendas,
+      ticketMedio: ticketMedioFinal,
+      upsellImpactPercent: ticketMedioBase > 0 ? ((ticketMedioFinal - ticketMedioBase) / ticketMedioBase) * 100 : 0,
+    }
+  }, [getPlataformaMetrics])
 
   const updatePeriod = useCallback((period: DatePeriod) => {
     setSelectedPeriod(period)
@@ -731,6 +772,7 @@ export function useFacebookData() {
     processAllMetrics,
     getTotals,
     getPlataformaMetrics,
+    getPlataformaTotals,
     refresh: forceRefresh,
     smartRefresh,
     forceRefresh
