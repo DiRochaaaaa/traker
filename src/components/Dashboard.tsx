@@ -7,8 +7,7 @@ import { CampaignsTable } from './CampaignsTable'
 import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { DateSelector } from './DateSelector'
 import { ColorConfigModal } from './ColorConfigModal'
-import { PlatformMobileCard } from './PlatformMobileCard'
-import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, DollarSign, TrendingUp, Receipt, ArrowUpCircle, ArrowUp } from 'lucide-react'
+import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, ArrowUp } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import BillingInfoCard from './BillingInfoCard'
@@ -35,6 +34,7 @@ export function Dashboard() {
     processAllMetrics,
     getTotals,
     getPlataformaMetrics,
+    getPlataformaTotals,
     forceRefresh
   } = useFacebookData()
 
@@ -75,6 +75,7 @@ export function Dashboard() {
   const allMetrics = useMemo(() => processAllMetrics(), [processAllMetrics])
   const totals = useMemo(() => getTotals(metrics), [metrics, getTotals])
   const plataformaMetrics = useMemo(() => getPlataformaMetrics(), [getPlataformaMetrics])
+  const plataformaTotals = useMemo(() => getPlataformaTotals(), [getPlataformaTotals])
 
   const accountSummaries = useMemo<AccountSummary[]>(() => {
     const map: Record<string, { faturamento: number; comissao: number; valorUsado: number; compras: number }> = {}
@@ -319,115 +320,123 @@ export function Dashboard() {
         {/* Account Summaries */}
         <AccountSummaryTable summaries={accountSummaries} isLoading={loading.campaigns || loading.vendas} />
 
-        {/* Platform Metrics - Vendas por Plataforma */}
-        {!loading.isInitialLoad && !loading.campaigns && !loading.vendas && plataformaMetrics.length > 0 && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden mb-6">
-            <div className="p-3 md:p-4 border-b border-gray-700">
-              <h2 className="text-lg md:text-xl font-semibold text-white">Vendas por Plataforma</h2>
-            </div>
+        {/* Platform Metrics */}
+        <div className="mb-6 md:mb-8">
+            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 md:p-6">
+            <h3 className="text-lg md:text-xl font-semibold text-white mb-4">Vendas por Plataforma</h3>
 
-            {/* Mobile cards */}
-            <div className="block md:hidden p-3 space-y-3">
-              {plataformaMetrics.map((platform, index) => (
-                <PlatformMobileCard key={index} platform={platform} />
-              ))}
-            </div>
-
-            {/* Desktop table */}
+            {/* --- Layout de Tabela para Desktop --- */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-900/50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-gray-300">Plataforma</th>
-                    <th className="px-3 py-2 text-right text-gray-300">
-                      <div className="inline-flex items-center gap-1">
-                        <ShoppingBag className="h-3 w-3" />
-                        Vendas
-                      </div>
-                    </th>
-                    <th className="px-3 py-2 text-right text-gray-300">
-                      <div className="inline-flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
-                        Faturamento
-                      </div>
-                    </th>
-                    <th className="px-3 py-2 text-right text-gray-300">
-                      <div className="inline-flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
-                        Comissão
-                      </div>
-                    </th>
-                    <th className="px-3 py-2 text-right text-gray-300">
-                      <div className="inline-flex items-center gap-1">
-                        <Receipt className="h-3 w-3" />
-                        Ticket Médio
-                      </div>
-                    </th>
-                    <th className="px-3 py-2 text-right text-gray-300">
-                      <div className="inline-flex items-center gap-1">
-                        <ArrowUpCircle className="h-3 w-3" />
-                        Impacto Upsell
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-800 divide-y divide-gray-700">
-                  {plataformaMetrics.map((platform, index) => (
-                    <tr key={index}>
-                      <td className="px-3 py-3 text-white font-medium">
-                        {platform.plataforma}
-                        <div className="text-xs text-gray-400">
-                          {platform.vendas} {platform.vendas === 1 ? 'venda' : 'vendas'}
-                          {(platform.upsellCount > 0 || platform.orderbumpCount > 0) && (
-                            <span className="ml-2 text-cyan-400">
-                              • {platform.upsellCount}ups {platform.orderbumpCount}bump
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-right text-blue-400 font-medium">{platform.vendas}</td>
-                      <td className="px-3 py-3 text-right text-green-400 font-medium">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(platform.faturamento)}
-                      </td>
-                      <td className="px-3 py-3 text-right text-orange-400 font-medium">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(platform.comissao)}
-                      </td>
-                      <td className="px-3 py-3 text-right text-purple-400 font-medium">
-                        {new Intl.NumberFormat('pt-BR', { 
-                          style: 'currency', 
-                          currency: 'BRL' 
-                        }).format(platform.ticketMedio)}
-                      </td>
-                      <td className="px-3 py-3 text-right font-medium">
-                        {platform.taxaUpsellTicket > 0 ? (
-                          <div className="text-right">
-                            <span className="text-green-400 font-bold">
-                              +{platform.taxaUpsellTicket.toFixed(1)}%
-                            </span>
-                            <div className="text-xs text-gray-400 mt-0.5">
-                              Base: {new Intl.NumberFormat('pt-BR', { 
-                                style: 'currency', 
-                                currency: 'BRL' 
-                              }).format(platform.ticketMedioBase)}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-500">-</span>
-                        )}
-                      </td>
+                <table className="w-full text-sm">
+                <thead>
+                    <tr className="border-b border-gray-700">
+                    <th className="text-left font-semibold text-gray-300 py-3 px-2">Plataforma</th>
+                    <th className="text-right font-semibold text-gray-300 py-3 px-2">Vendas</th>
+                    <th className="text-right font-semibold text-gray-300 py-3 px-2">Faturamento</th>
+                    <th className="text-right font-semibold text-gray-300 py-3 px-2">Comissão</th>
+                    <th className="text-right font-semibold text-gray-300 py-3 px-2">Ticket Médio</th>
+                    <th className="text-right font-semibold text-gray-300 py-3 px-2">Impacto Upsell</th>
                     </tr>
-                  ))}
+                </thead>
+                <tbody>
+                    {plataformaMetrics.map((p, index) => (
+                    <tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/20">
+                        <td className="py-3 px-2 text-white font-medium">{p.plataforma}</td>
+                        <td className="py-3 px-2 text-right text-gray-300">{p.vendas}</td>
+                        <td className="py-3 px-2 text-right text-green-400 font-medium">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.faturamento)}</td>
+                        <td className="py-3 px-2 text-right text-orange-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.comissao)}</td>
+                        <td className="py-3 px-2 text-right text-blue-400 font-semibold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.ticketMedio)}</td>
+                        <td className="py-3 px-2 text-right text-purple-400">
+                        <div className="flex items-center justify-end gap-1">
+                            <ArrowUp className="h-3.5 w-3.5" />
+                            <span>+{p.upsellImpactPercent.toFixed(1)}%</span>
+                        </div>
+                        </td>
+                    </tr>
+                    ))}
                 </tbody>
-              </table>
+                {plataformaMetrics.length > 0 && (
+                    <tfoot className="bg-gray-900/30">
+                    <tr className="border-t-2 border-gray-600">
+                        <td className="py-3 px-2 text-white font-bold">Total</td>
+                        <td className="py-3 px-2 text-right text-gray-300 font-bold">{plataformaTotals.vendas}</td>
+                        <td className="py-3 px-2 text-right text-green-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.faturamento)}</td>
+                        <td className="py-3 px-2 text-right text-orange-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.comissao)}</td>
+                        <td className="py-3 px-2 text-right text-blue-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.ticketMedio)}</td>
+                        <td className="py-3 px-2 text-right text-purple-400 font-bold">
+                        <div className="flex items-center justify-end gap-1">
+                            <ArrowUp className="h-3.5 w-3.5" />
+                            <span>+{plataformaTotals.upsellImpactPercent.toFixed(1)}%</span>
+                        </div>
+                        </td>
+                    </tr>
+                    </tfoot>
+                )}
+                </table>
             </div>
-          </div>
-        )}
+
+            {/* --- Layout de Cards para Mobile --- */}
+            <div className="block md:hidden space-y-3">
+                {plataformaMetrics.map((p, index) => (
+                <div key={index} className="bg-gray-700/50 p-3 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-white">{p.plataforma}</span>
+                    <span className="text-sm text-gray-300">{p.vendas} vendas</span>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Faturamento</span>
+                        <span className="font-medium text-green-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.faturamento)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Comissão</span>
+                        <span className="font-medium text-orange-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.comissao)}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-gray-600/50 pt-1 mt-1">
+                        <span className="text-gray-400">Ticket Médio</span>
+                        <span className="font-semibold text-blue-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.ticketMedio)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Impacto Upsell</span>
+                        <span className="font-semibold text-purple-400 flex items-center gap-1">
+                        <ArrowUp className="h-3.5 w-3.5" />
+                        +{p.upsellImpactPercent.toFixed(1)}%
+                        </span>
+                    </div>
+                    </div>
+                </div>
+                ))}
+                {/* --- Totais Mobile --- */}
+                {plataformaMetrics.length > 0 && (
+                <div className="border-t-2 border-gray-600 pt-3 mt-3 space-y-2 text-base">
+                    <div className="flex justify-between items-center">
+                    <span className="font-semibold text-white">Faturamento Total</span>
+                    <span className="font-bold text-green-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.faturamento)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                    <span className="font-semibold text-white">Comissão Total</span>
+                    <span className="font-bold text-orange-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.comissao)}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-gray-600/50 pt-2 mt-2">
+                    <span className="font-semibold text-white">Ticket Médio (Total)</span>
+                    <span className="font-bold text-blue-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.ticketMedio)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                    <span className="font-semibold text-white">Impacto Upsell (Total)</span>
+                    <span className="font-bold text-purple-400 flex items-center gap-1">
+                        <ArrowUp className="h-4 w-4" />
+                        +{plataformaTotals.upsellImpactPercent.toFixed(1)}%
+                    </span>
+                    </div>
+                </div>
+                )}
+            </div>
+
+            {plataformaMetrics.length === 0 && !loading.vendas && (
+                <p className="text-gray-400 text-center py-8">Nenhuma venda registrada no período.</p>
+            )}
+            </div>
+        </div>
 
         {/* Metrics Cards - Sempre visíveis com loading states */}
         {(loading.isInitialLoad || loading.campaigns || loading.vendas) ? (

@@ -1,12 +1,9 @@
 'use client'
 
-import { ShoppingBag, DollarSign, TrendingUp, Receipt, ArrowUpCircle, Target } from 'lucide-react'
 import { PlataformaMetrics } from '@/hooks/useFacebookData'
+import { ArrowUpCircle } from 'lucide-react'
 
-interface PlatformMobileCardProps {
-  platform: PlataformaMetrics
-}
-
+// Funções de formatação locais para evitar problemas de importação
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -14,85 +11,46 @@ const formatCurrency = (value: number) => {
   }).format(value)
 }
 
-export function PlatformMobileCard({ platform }: PlatformMobileCardProps) {
-  const formatPercentage = (value: number) => {
-    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
-  }
+interface PlatformMobileCardProps {
+  platform: PlataformaMetrics
+}
 
+export const PlatformMobileCard = ({ platform }: PlatformMobileCardProps) => {
   return (
-    <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-2.5">
-      <div className="mb-2">
-        <h4 className="text-sm font-semibold text-white truncate">{platform.plataforma}</h4>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-400">
-            {platform.vendas} {platform.vendas === 1 ? 'venda' : 'vendas'}
+    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-white">{platform.plataforma}</h3>
+        <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">
+          {platform.vendas} {platform.vendas === 1 ? 'venda' : 'vendas'}
+        </span>
+      </div>
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400">Faturamento</span>
+          <span className="font-medium text-green-400">{formatCurrency(platform.faturamento)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400">Comissão</span>
+          <span className="font-medium text-orange-400">{formatCurrency(platform.comissao)}</span>
+        </div>
+        <div className="flex justify-between items-center border-t border-gray-700/60 pt-2 mt-2">
+          <span className="text-gray-400">Ticket Médio</span>
+          <span className="font-semibold text-blue-400">{formatCurrency(platform.ticketMedio)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400">Impacto Upsell</span>
+          <span className={`font-semibold flex items-center gap-1 ${platform.upsellImpactPercent > 0 ? 'text-purple-400' : 'text-gray-500'}`}>
+            {platform.upsellImpactPercent > 0 ? (
+              <>
+                <ArrowUpCircle className="h-3.5 w-3.5" />
+                +{platform.upsellImpactPercent.toFixed(1)}%
+              </>
+            ) : (
+              '-'
+            )}
           </span>
-          {platform.taxaUpsellTicket > 0 && (
-            <span className="text-green-400 font-medium">
-              {formatPercentage(platform.taxaUpsellTicket)} ↗
-            </span>
-          )}
         </div>
       </div>
-      
-      {/* Métricas principais - 2x3 grid */}
-      <div className="grid grid-cols-2 gap-1 text-xs mb-2">
-        <div className="text-center bg-gray-800/30 rounded p-1">
-          <ShoppingBag className="h-3 w-3 text-blue-400 mx-auto mb-0.5" />
-          <p className="text-[10px] text-gray-400 leading-none">Vendas</p>
-          <p className="text-[11px] font-bold text-blue-400 leading-none">
-            {platform.vendas}
-          </p>
-        </div>
-        <div className="text-center bg-gray-800/30 rounded p-1">
-          <DollarSign className="h-3 w-3 text-green-400 mx-auto mb-0.5" />
-          <p className="text-[10px] text-gray-400 leading-none">Fatur.</p>
-          <p className="text-[11px] font-bold text-green-400 leading-none">
-            {formatCurrency(platform.faturamento)}
-          </p>
-        </div>
-        <div className="text-center bg-gray-800/30 rounded p-1">
-          <TrendingUp className="h-3 w-3 text-orange-400 mx-auto mb-0.5" />
-          <p className="text-[10px] text-gray-400 leading-none">Comis.</p>
-          <p className="text-[11px] font-bold text-orange-400 leading-none">
-            {formatCurrency(platform.comissao)}
-          </p>
-        </div>
-        <div className="text-center bg-gray-800/30 rounded p-1">
-          <Receipt className="h-3 w-3 text-purple-400 mx-auto mb-0.5" />
-          <p className="text-[10px] text-gray-400 leading-none">Ticket</p>
-          <p className="text-[11px] font-bold text-purple-400 leading-none">
-            {formatCurrency(platform.ticketMedio)}
-          </p>
-        </div>
-      </div>
-
-      {/* Métricas de Upsell */}
-      {(platform.upsellCount > 0 || platform.orderbumpCount > 0) && (
-        <div className="grid grid-cols-3 gap-1 text-xs border-t border-gray-700/50 pt-2">
-          <div className="text-center bg-gray-800/20 rounded p-1">
-            <ArrowUpCircle className="h-2.5 w-2.5 text-cyan-400 mx-auto mb-0.5" />
-            <p className="text-[9px] text-gray-500 leading-none">Ups</p>
-            <p className="text-[10px] font-bold text-cyan-400 leading-none">
-              {platform.upsellCount}
-            </p>
-          </div>
-          <div className="text-center bg-gray-800/20 rounded p-1">
-            <Target className="h-2.5 w-2.5 text-indigo-400 mx-auto mb-0.5" />
-            <p className="text-[9px] text-gray-500 leading-none">Bump</p>
-            <p className="text-[10px] font-bold text-indigo-400 leading-none">
-              {platform.orderbumpCount}
-            </p>
-          </div>
-          <div className="text-center bg-gray-800/20 rounded p-1">
-            <Receipt className="h-2.5 w-2.5 text-yellow-400 mx-auto mb-0.5" />
-            <p className="text-[9px] text-gray-500 leading-none">Base</p>
-            <p className="text-[10px] font-bold text-yellow-400 leading-none">
-              {formatCurrency(platform.ticketMedioBase)}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 } 

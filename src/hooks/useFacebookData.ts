@@ -56,13 +56,9 @@ export interface PlataformaMetrics {
   plataforma: string
   vendas: number
   faturamento: number
-  faturamentoMain: number
   comissao: number
-  upsellCount: number
-  orderbumpCount: number
   ticketMedio: number
-  ticketMedioBase: number
-  taxaUpsellTicket: number
+  upsellImpactPercent: number
 }
 
 export interface LoadingStates {
@@ -647,65 +643,44 @@ export function useFacebookData() {
       if (!acc[plataforma]) {
         acc[plataforma] = {
           vendas: 0,
-          faturamento: 0,
-          faturamentoMain: 0,
-          comissao: 0,
-          upsellCount: 0,
-          orderbumpCount: 0,
+          faturamentoTotal: 0,
+          faturamentoBase: 0,
+          comissao: 0
         }
       }
       
       const tipo = venda.tipo?.toLowerCase() || ''
       const isMainSale = tipo === 'main' || tipo === '' || (!tipo.includes('upsell') && !tipo.includes('orderbump') && !tipo.includes('bump'))
-      const isUpsell = tipo.includes('upsell')
-      const isOrderbump = tipo.includes('orderbump') || tipo.includes('bump')
-      const faturamento = parseMonetaryValue(venda.faturamento_bruto || null)
       
-      // Contar vendas por tipo
+      const faturamentoBruto = parseMonetaryValue(venda.faturamento_bruto || null)
+
       if (isMainSale) {
         acc[plataforma].vendas += 1
-        acc[plataforma].faturamentoMain += faturamento
-      } else if (isUpsell) {
-        acc[plataforma].upsellCount += 1
-      } else if (isOrderbump) {
-        acc[plataforma].orderbumpCount += 1
+        acc[plataforma].faturamentoBase += faturamentoBruto
       }
       
-      // Somar todo o faturamento (main + upsell + orderbump)
-      acc[plataforma].faturamento += faturamento
+      acc[plataforma].faturamentoTotal += faturamentoBruto
       acc[plataforma].comissao += parseMonetaryValue(venda.comissao || null)
       
       return acc
-    }, {} as Record<string, { 
-        vendas: number; 
-        faturamento: number; 
-        faturamentoMain: number; 
-        comissao: number; 
-        upsellCount: number; 
-        orderbumpCount: number;
-    }>)
+    }, {} as Record<string, { vendas: number; faturamentoTotal: number; faturamentoBase: number; comissao: number }>)
     
-    // Calcular métricas derivadas para cada plataforma
-    const plataformasArray = Object.entries(plataformasMap).map(([plataformaName, data]) => {
-      // Calcular tickets médios
-      const ticketMedioBase = data.vendas > 0 ? data.faturamentoMain / data.vendas : 0
-      const ticketMedio = data.vendas > 0 ? data.faturamento / data.vendas : 0
-      
-      // Calcular taxa de upsell
-      const taxaUpsellTicket = ticketMedioBase > 0 
-        ? ((ticketMedio - ticketMedioBase) / ticketMedioBase) * 100 
-        : 0
-      
-      return {
-        plataforma: plataformaName,
-        ...data,
-        ticketMedio,
-        ticketMedioBase,
-        taxaUpsellTicket
-      }
-    })
-    
-    return plataformasArray.sort((a, b) => b.faturamento - a.faturamento)
+    return Object.entries(plataformasMap)
+      .map(([plataforma, data]) => {
+        const ticketMedioBase = data.vendas > 0 ? data.faturamentoBase / data.vendas : 0
+        const ticketMedioFinal = data.vendas > 0 ? data.faturamentoTotal / data.vendas : 0
+        const upsellImpactPercent = ticketMedioBase > 0 ? ((ticketMedioFinal - ticketMedioBase) / ticketMedioBase) * 100 : 0
+        
+        return {
+          plataforma,
+          vendas: data.vendas,
+          faturamento: data.faturamentoTotal,
+          comissao: data.comissao,
+          ticketMedio: ticketMedioFinal,
+          upsellImpactPercent,
+        }
+      })
+      .sort((a, b) => b.faturamento - a.faturamento)
   }, [vendas])
 
   const getPlataformaTotals = useCallback(() => {
@@ -713,7 +688,7 @@ export function useFacebookData() {
     const totals = platformMetrics.reduce(
       (acc, metric) => {
         const faturamentoBase = metric.ticketMedio > 0 
-          ? (metric.faturamento / (1 + (metric.taxaUpsellTicket / 100))) 
+          ? (metric.faturamento / (1 + (metric.upsellImpactPercent / 100))) 
           : metric.faturamento
           
         acc.faturamento += metric.faturamento
