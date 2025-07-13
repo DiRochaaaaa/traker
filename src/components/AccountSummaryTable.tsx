@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 
-import { DollarSign, TrendingDown, TrendingUp, Target, MousePointerClick } from 'lucide-react'
+import { DollarSign, TrendingDown, TrendingUp, Target, MousePointerClick, ShoppingBag } from 'lucide-react'
 import { AccountMobileCard } from './AccountMobileCard'
 
         
@@ -16,6 +16,7 @@ export interface AccountSummary {
   lucro: number
   roas: number
   cpa: number
+  compras: number
 }
 
 interface AccountSummaryTableProps {
@@ -75,7 +76,7 @@ export function AccountSummaryTable({ summaries, isLoading = false }: AccountSum
           <thead className="bg-gray-900/50">
             <tr>
               <th className="px-3 py-2 text-left text-gray-300">Conta</th>
-
+              <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><ShoppingBag className="h-3 w-3" />Vendas</div></th>
               <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" />Faturamento</div></th>
               <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" />Comissão</div></th>
               <th className="px-3 py-2 text-right text-gray-300"><div className="inline-flex items-center gap-1"><TrendingDown className="h-3 w-3" />Valor Usado</div></th>
@@ -92,6 +93,7 @@ export function AccountSummaryTable({ summaries, isLoading = false }: AccountSum
                   {row.accountName}
                   <div className="text-xs text-gray-400">{row.accountId}</div>
                 </td>
+                <td className="px-3 py-3 text-right text-gray-300">{row.compras}</td>
                 <td className="px-3 py-3 text-right text-green-400">{formatCurrency(row.faturamento)}</td>
                 <td className="px-3 py-3 text-right text-orange-400">{formatCurrency(row.comissao)}</td>
                 <td className="px-3 py-3 text-right text-blue-400">{formatCurrency(row.valorUsado)}</td>

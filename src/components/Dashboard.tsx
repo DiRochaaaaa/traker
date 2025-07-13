@@ -11,8 +11,6 @@ import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, ArrowUp } from 'lu
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import BillingInfoCard from './BillingInfoCard'
-import { HighlightValue } from './HighlightValue'
-import { formatCurrency } from '@/lib/formatters'
 
 interface AccountInfo {
   id: string
@@ -99,11 +97,32 @@ export function Dashboard() {
         const lucro = data.comissao - data.valorUsado
         const roas = data.valorUsado > 0 ? data.comissao / data.valorUsado : 0
         const cpa = data.compras > 0 ? data.valorUsado / data.compras : 0
-        return { accountId: id, accountName, faturamento: data.faturamento, comissao: data.comissao, valorUsado: data.valorUsado, lucro, roas, cpa }
+        return {
+          accountId: id,
+          accountName,
+          faturamento: data.faturamento,
+          comissao: data.comissao,
+          valorUsado: data.valorUsado,
+          lucro,
+          roas,
+          cpa,
+          compras: data.compras,
+        }
       })
       .sort((a, b) => b.lucro - a.lucro)
   }, [allMetrics, availableAccounts])
 
+
+  const getPlatformColor = (platformName: string) => {
+    const name = platformName.toLowerCase()
+    if (name.includes('cakto')) {
+      return 'text-green-400'
+    }
+    if (name.includes('perfectpay')) {
+      return 'text-teal-400'
+    }
+    return 'text-white'
+  }
 
   // 🎯 Função para detectar performance geral excelente
   const isExceptionalPerformance = useMemo(() => {
@@ -343,7 +362,7 @@ export function Dashboard() {
                 <tbody>
                     {plataformaMetrics.map((p, index) => (
                     <tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/20">
-                        <td className="py-3 px-2 text-white font-medium">{p.plataforma}</td>
+                        <td className={`py-3 px-2 font-medium capitalize ${getPlatformColor(p.plataforma)}`}>{p.plataforma}</td>
                         <td className="py-3 px-2 text-right text-gray-300">{p.vendas}</td>
                         <td className="py-3 px-2 text-right text-green-400 font-medium">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.faturamento)}</td>
                         <td className="py-3 px-2 text-right text-orange-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.comissao)}</td>
@@ -418,7 +437,7 @@ export function Dashboard() {
                 {plataformaMetrics.map((p, index) => (
                 <div key={index} className="bg-gray-700/50 p-3 rounded-lg">
                     <div className="flex justify-between items-center mb-2">
-                    <span className="font-semibold text-white">{p.plataforma}</span>
+                    <span className={`font-semibold capitalize ${getPlatformColor(p.plataforma)}`}>{p.plataforma}</span>
                     <span className="text-sm text-gray-300">{p.vendas} vendas</span>
                     </div>
                     <div className="space-y-1 text-sm">

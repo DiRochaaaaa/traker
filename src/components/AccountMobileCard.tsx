@@ -1,6 +1,6 @@
 'use client'
 
-import { DollarSign, TrendingDown, TrendingUp, Target, MousePointerClick } from 'lucide-react'
+import { DollarSign, TrendingDown, TrendingUp, Target, MousePointerClick, ShoppingBag } from 'lucide-react'
 import { AccountSummary } from './AccountSummaryTable'
 
 interface AccountMobileCardProps {
@@ -29,7 +29,14 @@ export function AccountMobileCard({ summary }: AccountMobileCardProps) {
         <h4 className="text-sm font-semibold text-white truncate">{summary.accountName}</h4>
         <p className="text-xs text-gray-400 truncate">{summary.accountId}</p>
       </div>
-      <div className="grid grid-cols-3 gap-1 text-xs">
+      <div className="grid grid-cols-4 gap-1 text-xs">
+        <div className="text-center bg-gray-800/30 rounded p-1">
+          <ShoppingBag className="h-3 w-3 text-gray-300 mx-auto mb-0.5" />
+          <p className="text-[10px] text-gray-400 leading-none">Vendas</p>
+          <p className="text-[11px] font-bold text-gray-300 leading-none">
+            {summary.compras}
+          </p>
+        </div>
         <div className="text-center bg-gray-800/30 rounded p-1">
           <DollarSign className="h-3 w-3 text-green-400 mx-auto mb-0.5" />
           <p className="text-[10px] text-gray-400 leading-none">Fat.</p>
@@ -51,6 +58,8 @@ export function AccountMobileCard({ summary }: AccountMobileCardProps) {
             {formatCurrency(summary.valorUsado)}
           </p>
         </div>
+      </div>
+      <div className="grid grid-cols-3 gap-1 text-xs mt-1">
         <div className="text-center bg-gray-800/30 rounded p-1">
           <TrendingUp className={`h-3 w-3 mx-auto mb-0.5 ${getProfitColor(summary.lucro)}`} />
           <p className="text-[10px] text-gray-400 leading-none">Lucro</p>

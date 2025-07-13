@@ -723,10 +723,8 @@ export function useFacebookData() {
         const totalImpactRatio = 1 + metric.totalImpactPercent / 100
         const faturamentoBase = totalImpactRatio > 0 ? faturamentoTotal / totalImpactRatio : faturamentoTotal
         
-        const upsellImpactRatio = 1 + metric.upsellImpactPercent / 100
         const faturamentoUpsell = faturamentoBase * (metric.upsellImpactPercent / 100)
         
-        const orderBumpImpactRatio = 1 + metric.orderBumpImpactPercent / 100
         const faturamentoOrderBump = faturamentoBase * (metric.orderBumpImpactPercent / 100)
 
         acc.faturamento += faturamentoTotal
