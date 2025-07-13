@@ -11,6 +11,8 @@ import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, ArrowUp } from 'lu
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import BillingInfoCard from './BillingInfoCard'
+import { HighlightValue } from './HighlightValue'
+import { formatCurrency } from '@/lib/formatters'
 
 interface AccountInfo {
   id: string
@@ -335,7 +337,7 @@ export function Dashboard() {
                     <th className="text-right font-semibold text-gray-300 py-3 px-2">Faturamento</th>
                     <th className="text-right font-semibold text-gray-300 py-3 px-2">Comissão</th>
                     <th className="text-right font-semibold text-gray-300 py-3 px-2">Ticket Médio</th>
-                    <th className="text-right font-semibold text-gray-300 py-3 px-2">Impacto Upsell</th>
+                    <th className="text-right font-semibold text-gray-300 py-3 px-2">Impacto Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -346,11 +348,28 @@ export function Dashboard() {
                         <td className="py-3 px-2 text-right text-green-400 font-medium">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.faturamento)}</td>
                         <td className="py-3 px-2 text-right text-orange-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.comissao)}</td>
                         <td className="py-3 px-2 text-right text-blue-400 font-semibold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.ticketMedio)}</td>
-                        <td className="py-3 px-2 text-right text-purple-400">
-                        <div className="flex items-center justify-end gap-1">
-                            <ArrowUp className="h-3.5 w-3.5" />
-                            <span>+{p.upsellImpactPercent.toFixed(1)}%</span>
-                        </div>
+                        <td className="text-right py-3 px-2">
+                          <div className="flex flex-col items-end">
+                            <div
+                              className={`flex items-center justify-end gap-1 font-semibold text-base ${
+                                p.totalImpactPercent > 0
+                                  ? 'text-purple-400'
+                                  : p.totalImpactPercent < 0
+                                  ? 'text-red-400'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              {p.totalImpactPercent > 0 && <ArrowUp className="h-3.5 w-3.5" />}
+                              <span>{`${p.totalImpactPercent >= 0 ? '+' : ''}${p.totalImpactPercent.toFixed(
+                                1,
+                              )}%`}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              <span>Up: {p.upsellImpactPercent.toFixed(1)}%</span>
+                              <span className="mx-1">/</span>
+                              <span>Bump: {p.orderBumpImpactPercent.toFixed(1)}%</span>
+                            </div>
+                          </div>
                         </td>
                     </tr>
                     ))}
@@ -362,12 +381,31 @@ export function Dashboard() {
                         <td className="py-3 px-2 text-right text-gray-300 font-bold">{plataformaTotals.vendas}</td>
                         <td className="py-3 px-2 text-right text-green-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.faturamento)}</td>
                         <td className="py-3 px-2 text-right text-orange-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.comissao)}</td>
-                        <td className="py-3 px-2 text-right text-blue-400 font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.ticketMedio)}</td>
-                        <td className="py-3 px-2 text-right text-purple-400 font-bold">
-                        <div className="flex items-center justify-end gap-1">
-                            <ArrowUp className="h-3.5 w-3.5" />
-                            <span>+{plataformaTotals.upsellImpactPercent.toFixed(1)}%</span>
-                        </div>
+                        <td className="py-3 px-2 text-right text-blue-400 font-bold">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.ticketMedio)}
+                        </td>
+                        <td className="text-right py-4 px-2">
+                          <div className="flex flex-col items-end">
+                            <div
+                              className={`flex items-center justify-end gap-1 font-bold text-base ${
+                                plataformaTotals.totalImpactPercent > 0
+                                  ? 'text-purple-400'
+                                  : plataformaTotals.totalImpactPercent < 0
+                                  ? 'text-red-400'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              {plataformaTotals.totalImpactPercent > 0 && <ArrowUp className="h-3.5 w-3.5" />}
+                              <span>{`${
+                                plataformaTotals.totalImpactPercent >= 0 ? '+' : ''
+                              }${plataformaTotals.totalImpactPercent.toFixed(1)}%`}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              <span>Up: {plataformaTotals.upsellImpactPercent.toFixed(1)}%</span>
+                              <span className="mx-1">/</span>
+                              <span>Bump: {plataformaTotals.orderBumpImpactPercent.toFixed(1)}%</span>
+                            </div>
+                          </div>
                         </td>
                     </tr>
                     </tfoot>
@@ -392,16 +430,23 @@ export function Dashboard() {
                         <span className="text-gray-400">Comissão</span>
                         <span className="font-medium text-orange-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.comissao)}</span>
                     </div>
-                    <div className="flex justify-between items-center border-t border-gray-600/50 pt-1 mt-1">
+                    <div className="flex justify-between items-start border-t border-gray-600/50 pt-1 mt-1">
                         <span className="text-gray-400">Ticket Médio</span>
                         <span className="font-semibold text-blue-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.ticketMedio)}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-400">Impacto Upsell</span>
-                        <span className="font-semibold text-purple-400 flex items-center gap-1">
-                        <ArrowUp className="h-3.5 w-3.5" />
-                        +{p.upsellImpactPercent.toFixed(1)}%
-                        </span>
+                    <div className="flex justify-between items-start border-t border-gray-600/50 pt-1 mt-1">
+                        <span className="text-gray-400">Impacto Total</span>
+                        <div className="flex flex-col items-end">
+                          <span className="font-semibold text-purple-400 flex items-center gap-1">
+                            {p.totalImpactPercent > 0 && <ArrowUp className="h-3.5 w-3.5" />}
+                            {`${p.totalImpactPercent >= 0 ? '+' : ''}${p.totalImpactPercent.toFixed(1)}%`}
+                          </span>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            <span>Up: {p.upsellImpactPercent.toFixed(1)}%</span>
+                            <span className="mx-1">/</span>
+                            <span>Bump: {p.orderBumpImpactPercent.toFixed(1)}%</span>
+                          </div>
+                        </div>
                     </div>
                     </div>
                 </div>
@@ -421,12 +466,19 @@ export function Dashboard() {
                     <span className="font-semibold text-white">Ticket Médio (Total)</span>
                     <span className="font-bold text-blue-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plataformaTotals.ticketMedio)}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                    <span className="font-semibold text-white">Impacto Upsell (Total)</span>
-                    <span className="font-bold text-purple-400 flex items-center gap-1">
-                        <ArrowUp className="h-4 w-4" />
-                        +{plataformaTotals.upsellImpactPercent.toFixed(1)}%
-                    </span>
+                    <div className="flex justify-between items-start border-t border-gray-600/50 pt-2 mt-2">
+                        <span className="font-semibold text-white">Impacto Total</span>
+                        <div className="flex flex-col items-end">
+                          <span className="font-bold text-purple-400 flex items-center gap-1">
+                              {plataformaTotals.totalImpactPercent > 0 && <ArrowUp className="h-4 w-4" />}
+                              {`${plataformaTotals.totalImpactPercent >= 0 ? '+' : ''}${plataformaTotals.totalImpactPercent.toFixed(1)}%`}
+                          </span>
+                           <div className="text-xs text-gray-500 mt-0.5">
+                              <span>Up: {plataformaTotals.upsellImpactPercent.toFixed(1)}%</span>
+                              <span className="mx-1">/</span>
+                              <span>Bump: {plataformaTotals.orderBumpImpactPercent.toFixed(1)}%</span>
+                          </div>
+                        </div>
                     </div>
                 </div>
                 )}

@@ -59,6 +59,8 @@ export interface PlataformaMetrics {
   comissao: number
   ticketMedio: number
   upsellImpactPercent: number
+  orderBumpImpactPercent: number
+  totalImpactPercent: number
 }
 
 export interface LoadingStates {
@@ -638,39 +640,67 @@ export function useFacebookData() {
 
   const getPlataformaMetrics = useCallback((): PlataformaMetrics[] => {
     // Agrupar vendas por plataforma
-    const plataformasMap = vendas.reduce((acc, venda) => {
-      const plataforma = venda.plataforma || 'Não informado'
-      if (!acc[plataforma]) {
-        acc[plataforma] = {
-          vendas: 0,
-          faturamentoTotal: 0,
-          faturamentoBase: 0,
-          comissao: 0
+    const plataformasMap = vendas.reduce(
+      (acc, venda) => {
+        const plataforma = venda.plataforma || 'Não informado'
+        if (!acc[plataforma]) {
+          acc[plataforma] = {
+            vendas: 0,
+            faturamentoTotal: 0,
+            faturamentoBase: 0,
+            faturamentoUpsell: 0,
+            faturamentoOrderBump: 0,
+            comissao: 0,
+          }
         }
-      }
-      
-      const tipo = venda.tipo?.toLowerCase() || ''
-      const isMainSale = tipo === 'main' || tipo === '' || (!tipo.includes('upsell') && !tipo.includes('orderbump') && !tipo.includes('bump'))
-      
-      const faturamentoBruto = parseMonetaryValue(venda.faturamento_bruto || null)
 
-      if (isMainSale) {
-        acc[plataforma].vendas += 1
-        acc[plataforma].faturamentoBase += faturamentoBruto
-      }
-      
-      acc[plataforma].faturamentoTotal += faturamentoBruto
-      acc[plataforma].comissao += parseMonetaryValue(venda.comissao || null)
-      
-      return acc
-    }, {} as Record<string, { vendas: number; faturamentoTotal: number; faturamentoBase: number; comissao: number }>)
-    
+        const tipo = venda.tipo?.toLowerCase() || ''
+        const isUpsell = tipo.includes('upsell')
+        const isOrderBump = tipo.includes('orderbump') || tipo.includes('order-bump') || tipo.includes('bump')
+        const isMainSale = !isUpsell && !isOrderBump
+
+        const faturamentoBruto = parseMonetaryValue(venda.faturamento_bruto || null)
+
+        if (isMainSale) {
+          acc[plataforma].vendas += 1
+          acc[plataforma].faturamentoBase += faturamentoBruto
+        } else if (isUpsell) {
+          acc[plataforma].faturamentoUpsell += faturamentoBruto
+        } else if (isOrderBump) {
+          acc[plataforma].faturamentoOrderBump += faturamentoBruto
+        }
+
+        acc[plataforma].faturamentoTotal += faturamentoBruto
+        acc[plataforma].comissao += parseMonetaryValue(venda.comissao || null)
+
+        return acc
+      },
+      {} as Record<
+        string,
+        {
+          vendas: number
+          faturamentoTotal: number
+          faturamentoBase: number
+          faturamentoUpsell: number
+          faturamentoOrderBump: number
+          comissao: number
+        }
+      >,
+    )
+
     return Object.entries(plataformasMap)
       .map(([plataforma, data]) => {
-        const ticketMedioBase = data.vendas > 0 ? data.faturamentoBase / data.vendas : 0
         const ticketMedioFinal = data.vendas > 0 ? data.faturamentoTotal / data.vendas : 0
-        const upsellImpactPercent = ticketMedioBase > 0 ? ((ticketMedioFinal - ticketMedioBase) / ticketMedioBase) * 100 : 0
-        
+
+        const upsellImpactPercent =
+          data.faturamentoBase > 0 ? (data.faturamentoUpsell / data.faturamentoBase) * 100 : 0
+        const orderBumpImpactPercent =
+          data.faturamentoBase > 0 ? (data.faturamentoOrderBump / data.faturamentoBase) * 100 : 0
+        const totalImpactPercent =
+          data.faturamentoBase > 0
+            ? ((data.faturamentoUpsell + data.faturamentoOrderBump) / data.faturamentoBase) * 100
+            : 0
+
         return {
           plataforma,
           vendas: data.vendas,
@@ -678,6 +708,8 @@ export function useFacebookData() {
           comissao: data.comissao,
           ticketMedio: ticketMedioFinal,
           upsellImpactPercent,
+          orderBumpImpactPercent,
+          totalImpactPercent,
         }
       })
       .sort((a, b) => b.faturamento - a.faturamento)
@@ -687,20 +719,34 @@ export function useFacebookData() {
     const platformMetrics = getPlataformaMetrics()
     const totals = platformMetrics.reduce(
       (acc, metric) => {
-        const faturamentoBase = metric.ticketMedio > 0 
-          ? (metric.faturamento / (1 + (metric.upsellImpactPercent / 100))) 
-          : metric.faturamento
-          
-        acc.faturamento += metric.faturamento
+        const faturamentoTotal = metric.faturamento
+        const totalImpactRatio = 1 + metric.totalImpactPercent / 100
+        const faturamentoBase = totalImpactRatio > 0 ? faturamentoTotal / totalImpactRatio : faturamentoTotal
+        
+        const upsellImpactRatio = 1 + metric.upsellImpactPercent / 100
+        const faturamentoUpsell = faturamentoBase * (metric.upsellImpactPercent / 100)
+        
+        const orderBumpImpactRatio = 1 + metric.orderBumpImpactPercent / 100
+        const faturamentoOrderBump = faturamentoBase * (metric.orderBumpImpactPercent / 100)
+
+        acc.faturamento += faturamentoTotal
         acc.comissao += metric.comissao
         acc.vendas += metric.vendas
         acc.faturamentoBase += faturamentoBase
+        acc.faturamentoUpsell += faturamentoUpsell
+        acc.faturamentoOrderBump += faturamentoOrderBump
         return acc
       },
-      { faturamento: 0, comissao: 0, vendas: 0, faturamentoBase: 0 }
+      {
+        faturamento: 0,
+        comissao: 0,
+        vendas: 0,
+        faturamentoBase: 0,
+        faturamentoUpsell: 0,
+        faturamentoOrderBump: 0,
+      },
     )
 
-    const ticketMedioBase = totals.vendas > 0 ? totals.faturamentoBase / totals.vendas : 0
     const ticketMedioFinal = totals.vendas > 0 ? totals.faturamento / totals.vendas : 0
     
     return {
@@ -708,7 +754,14 @@ export function useFacebookData() {
       comissao: totals.comissao,
       vendas: totals.vendas,
       ticketMedio: ticketMedioFinal,
-      upsellImpactPercent: ticketMedioBase > 0 ? ((ticketMedioFinal - ticketMedioBase) / ticketMedioBase) * 100 : 0,
+      upsellImpactPercent:
+        totals.faturamentoBase > 0 ? (totals.faturamentoUpsell / totals.faturamentoBase) * 100 : 0,
+      orderBumpImpactPercent:
+        totals.faturamentoBase > 0 ? (totals.faturamentoOrderBump / totals.faturamentoBase) * 100 : 0,
+      totalImpactPercent:
+        totals.faturamentoBase > 0
+          ? ((totals.faturamentoUpsell + totals.faturamentoOrderBump) / totals.faturamentoBase) * 100
+          : 0,
     }
   }, [getPlataformaMetrics])
 
