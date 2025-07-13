@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Calendar, Filter, Search, TrendingUp, ShoppingBag, DollarSign, Eye, ArrowLeft } from 'lucide-react'
+import { Calendar, Filter, Search, TrendingUp, ShoppingBag, DollarSign, Eye, ArrowLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { SkeletonCard, SkeletonTable } from './SkeletonCard'
+import { VendaMobileCard } from './VendaMobileCard'
 
-interface Venda {
+export interface Venda {
   id: number
   created_at: string
   plataforma: string | null
@@ -77,6 +78,11 @@ export function VendasPage() {
       setCampaignIds([])
     }
   }, [])
+
+  const handleRefresh = useCallback(() => {
+    fetchVendas(period)
+    fetchCampaignIds(period)
+  }, [period, fetchVendas, fetchCampaignIds])
 
   const calculateStats = (vendasData: Venda[]) => {
     const stats = vendasData.reduce((acc, venda) => {
@@ -207,7 +213,7 @@ export function VendasPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           {loading.stats && loading.isInitialLoad ? (
             // Mostrar skeletons apenas no primeiro carregamento
             <>
@@ -218,51 +224,51 @@ export function VendasPage() {
             </>
           ) : (
             <>
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Total de Vendas</p>
-                    <p className={`text-2xl font-bold text-white ${loading.stats ? 'opacity-60' : ''}`}>
+                    <p className="text-gray-400 text-xs">Total de Vendas</p>
+                    <p className={`text-xl font-bold text-white ${loading.stats ? 'opacity-60' : ''}`}>
                       {stats.total}
                     </p>
                   </div>
-                  <ShoppingBag className="h-8 w-8 text-blue-400" />
+                  <ShoppingBag className="h-6 w-6 text-blue-400" />
                 </div>
               </div>
               
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Vendas Principais</p>
-                    <p className={`text-2xl font-bold text-green-400 ${loading.stats ? 'opacity-60' : ''}`}>
+                    <p className="text-gray-400 text-xs">Vendas Principais</p>
+                    <p className={`text-xl font-bold text-green-400 ${loading.stats ? 'opacity-60' : ''}`}>
                       {stats.vendas_main}
                     </p>
                   </div>
-                  <TrendingUp className="h-8 w-8 text-green-400" />
+                  <TrendingUp className="h-6 w-6 text-green-400" />
                 </div>
               </div>
 
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Comissão Total</p>
-                    <p className={`text-2xl font-bold text-green-400 ${loading.stats ? 'opacity-60' : ''}`}>
+                    <p className="text-gray-400 text-xs">Comissão Total</p>
+                    <p className={`text-xl font-bold text-green-400 ${loading.stats ? 'opacity-60' : ''}`}>
                       {formatCurrency(stats.comissao)}
                     </p>
                   </div>
-                  <DollarSign className="h-8 w-8 text-green-400" />
+                  <DollarSign className="h-6 w-6 text-green-400" />
                 </div>
               </div>
 
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Faturamento Total</p>
-                    <p className={`text-2xl font-bold text-blue-400 ${loading.stats ? 'opacity-60' : ''}`}>
+                    <p className="text-gray-400 text-xs">Faturamento Total</p>
+                    <p className={`text-xl font-bold text-blue-400 ${loading.stats ? 'opacity-60' : ''}`}>
                       {formatCurrency(stats.faturamento)}
                     </p>
                   </div>
-                  <DollarSign className="h-8 w-8 text-blue-400" />
+                  <DollarSign className="h-6 w-6 text-blue-400" />
                 </div>
               </div>
             </>
@@ -272,48 +278,51 @@ export function VendasPage() {
         {/* Filters */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-            {/* Period Filter */}
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-400" />
-              <span className="text-sm font-medium text-gray-300">Período:</span>
-              <select
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md text-sm"
-              >
-                <option value="today">Hoje</option>
-                <option value="yesterday">Ontem</option>
-                <option value="last_7_days">Últimos 7 dias</option>
-                <option value="this_month">Este mês</option>
-              </select>
-            </div>
-
-            {/* Search */}
-            <div className="flex items-center gap-2 flex-1">
+            {/* Search Input - first on mobile, middle on desktop */}
+            <div className="flex items-center gap-2 flex-1 lg:order-2">
               <Search className="h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Buscar por produto, cliente ou ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md text-sm placeholder-gray-400"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md text-sm placeholder-gray-400"
               />
             </div>
+            
+            {/* Selects wrapper */}
+            <div className="grid grid-cols-2 gap-4 lg:contents">
+              {/* Period Filter */}
+              <div className="flex items-center gap-2 lg:order-1">
+                <Calendar className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md text-sm"
+                  aria-label="Filtrar por período"
+                >
+                  <option value="today">Hoje</option>
+                  <option value="yesterday">Ontem</option>
+                  <option value="last_7_days">Últimos 7 dias</option>
+                  <option value="this_month">Este mês</option>
+                </select>
+              </div>
 
-            {/* Type Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-blue-400" />
-              <span className="text-sm font-medium text-gray-300">Tipo:</span>
-              <select
-                value={filterTipo}
-                onChange={(e) => setFilterTipo(e.target.value)}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md text-sm"
-              >
-                <option value="all">Todos</option>
-                <option value="main">Principal</option>
-                <option value="upsell">Upsell</option>
-                <option value="orderbump">Order Bump</option>
-              </select>
+              {/* Type Filter */}
+              <div className="flex items-center gap-2 lg:order-3">
+                <Filter className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                <select
+                  value={filterTipo}
+                  onChange={(e) => setFilterTipo(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md text-sm"
+                  aria-label="Filtrar por tipo de venda"
+                >
+                  <option value="all">Todos os tipos</option>
+                  <option value="main">Principal</option>
+                  <option value="upsell">Upsell</option>
+                  <option value="orderbump">Order Bump</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -324,9 +333,14 @@ export function VendasPage() {
             <h3 className="text-base md:text-lg font-semibold text-white">
               Vendas Encontradas ({vendasFiltradas.length})
             </h3>
-            {loading.vendas && (
-              <div className="text-blue-400 text-sm">Carregando...</div>
-            )}
+            <button
+              onClick={handleRefresh}
+              disabled={loading.vendas}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-800/80 border border-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading.vendas ? 'animate-spin' : ''}`} />
+              {loading.vendas && !loading.isInitialLoad ? 'Atualizando...' : 'Atualizar'}
+            </button>
           </div>
 
           {loading.vendas && loading.isInitialLoad ? (
@@ -340,55 +354,20 @@ export function VendasPage() {
             <>
               {/* Mobile View */}
               <div className="block lg:hidden">
-                <div className="divide-y divide-gray-700">
+                <div className="space-y-3 p-2">
                   {vendasFiltradas.map((venda) => (
-                    <div key={venda.id} className="p-4 hover:bg-gray-700/50 transition-colors">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-1 text-xs font-medium rounded border ${getPlatformStyle(venda.plataforma)}`}>
-                              {getPlatformLabel(venda.plataforma)}
-                            </span>
-                            <span className={`px-2 py-1 text-xs font-medium rounded border ${getTipoColor(venda.tipo)}`}>
-                              {getTipoLabel(venda.tipo)}
-                            </span>
-                          </div>
-                          <h4 className="text-white font-medium truncate">
-                            {venda.produto || 'Produto não informado'}
-                          </h4>
-                          <p className="text-gray-400 text-sm">
-                            {venda.cliente_name || 'Cliente não informado'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 mt-3">
-                        <div>
-                          <span className="text-gray-400 text-xs">Comissão</span>
-                          <p className="text-green-400 font-medium">
-                            {formatCurrency(parseFloat(venda.comissao || '0'))}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-gray-400 text-xs">Faturamento</span>
-                          <p className="text-blue-400 font-medium">
-                            {formatCurrency(parseFloat(venda.faturamento_bruto || '0'))}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3 pt-3 border-t border-gray-700/50">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-400">{formatDate(venda.created_at)}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-400">ID: {venda.purchase_id || '—'}</span>
-                            <span className={`px-2 py-1 text-xs font-medium rounded border ${getCampaignIdStyle(venda.campaign_id)}`}>
-                              {getCampaignIdLabel(venda.campaign_id)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <VendaMobileCard 
+                      key={venda.id}
+                      venda={venda}
+                      formatCurrency={formatCurrency}
+                      formatDate={formatDate}
+                      getTipoColor={getTipoColor}
+                      getTipoLabel={getTipoLabel}
+                      getCampaignIdStyle={getCampaignIdStyle}
+                      getCampaignIdLabel={getCampaignIdLabel}
+                      getPlatformStyle={getPlatformStyle}
+                      getPlatformLabel={getPlatformLabel}
+                    />
                   ))}
                 </div>
               </div>
