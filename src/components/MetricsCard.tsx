@@ -1,205 +1,193 @@
-import { TrendingUp, TrendingDown, DollarSign, Target, Eye, MousePointerClick } from 'lucide-react'
-import { HighlightValue } from './HighlightValue'
-import { getProfitColors, getROASColors, isHighPerformance as checkHighPerformance, HIGH_PERFORMANCE_CONFIG } from '@/config/performanceColors'
+import { Zap } from 'lucide-react'
+import {
+  getProfitColors,
+  getROASColors,
+  isHighPerformance as checkHighPerformance,
+  HIGH_PERFORMANCE_CONFIG,
+  COLOR_SCHEME,
+} from '@/config/performanceColors'
 
 interface MetricsCardProps {
   title: string
   value: string | number
-  change?: number
   format?: 'currency' | 'percentage' | 'number'
-  icon?: 'revenue' | 'profit' | 'roas' | 'cpm' | 'cpa' | 'purchases'
+  icon?:
+    | 'revenue'
+    | 'profit'
+    | 'roas'
+    | 'cpm'
+    | 'cpa'
+    | 'purchases'
+    | 'ticket'
+    | 'investment'
   isHighPerformance?: boolean
   isLoading?: boolean
   additionalData?: {
     faturamento?: number
     ticketBase?: number
     ticketAtual?: number
+    roas?: number
   }
 }
 
-const iconMap = {
-  revenue: DollarSign,
-  profit: TrendingUp,
-  roas: Target,
-  cpm: Eye,
-  cpa: MousePointerClick,
-  purchases: TrendingUp
-}
-
-export function MetricsCard({ title, value, change, format = 'number', icon, isHighPerformance = false, isLoading = false, additionalData }: MetricsCardProps) {
-  const IconComponent = icon ? iconMap[icon] : DollarSign
+export function MetricsCard({
+  title,
+  value,
+  format = 'number',
+  isHighPerformance = false,
+  isLoading = false,
+  additionalData,
+}: MetricsCardProps) {
 
   const formatValue = (val: string | number) => {
     const numVal = typeof val === 'string' ? parseFloat(val) : val
-    
+    if (isNaN(numVal)) {
+      return 'N/A'
+    }
+
     switch (format) {
       case 'currency':
         return new Intl.NumberFormat('pt-BR', {
           style: 'currency',
-          currency: 'BRL'
+          currency: 'BRL',
         }).format(numVal)
       case 'percentage':
-        return `${numVal.toFixed(2)}%`
+        return `${numVal.toFixed(1)}%`
+      case 'number':
+        // Adiciona . no milhar e formata com 3 casas decimais se for ROAS
+        if (title.toLowerCase().includes('roas')) {
+          return `${numVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`
+        }
+        return numVal.toLocaleString('pt-BR')
       default:
         return numVal.toLocaleString('pt-BR')
     }
   }
 
-  // 🎨 Verificar performance usando configuração centralizada
-  const lucroValue = typeof value === 'string' ? parseFloat(value) : value
-  
+  const numValue = typeof value === 'string' ? parseFloat(value) : value
   const isLucroCard = title === 'Lucro Total'
-  const isROASCard = title === 'ROAS Médio'
+  const isROASCard = title.toLowerCase().includes('roas')
   const isUpsellImpactCard = title === 'Impacto Upsell no Ticket'
-  
-  // Para ROAS, usar o valor direto. Para lucro, precisamos do ROAS para determinar a cor
-  const roasForColors = isROASCard
-    ? lucroValue
-    : isLucroCard && additionalData?.faturamento
-      ? (() => {
-          const spend = additionalData.faturamento - lucroValue
-          return spend > 0 ? additionalData.faturamento / spend : 0
-        })()
-      : lucroValue
-  
-  // 💰 Calcular percentual do lucro (Lucro/Faturamento)
+  const isValorInvestidoCard = title === 'Valor Investido'
+
   const getProfitPercentage = () => {
-    if (title === 'Lucro Total' && additionalData?.faturamento) {
-      const percentual = (lucroValue / additionalData.faturamento) * 100
+    if (isLucroCard && additionalData?.faturamento && additionalData.faturamento > 0) {
+      const percentual = (numValue / additionalData.faturamento) * 100
       return percentual.toFixed(1)
     }
     return null
   }
 
-  // 🎨 Obter cores baseadas na configuração centralizada
-  const getColorsForCard = () => {
-    if (isLucroCard && additionalData?.faturamento) {
-      // Para lucro, usar as cores baseadas no ROAS
-      const spend = additionalData.faturamento - lucroValue
-      const roasCalculado = spend > 0 ? additionalData.faturamento / spend : 0
-      return getProfitColors(lucroValue, roasCalculado)
+  const profitPercentage = getProfitPercentage()
+
+  const {
+    cardClass,
+    titleColor,
+    valueColor,
+    secondaryTextColor,
+  } = (() => {
+    const isHighPerf = isLucroCard && additionalData?.roas
+        ? checkHighPerformance(numValue, additionalData.roas)
+        : isHighPerformance
+
+    if (isHighPerf) {
+      return {
+        cardClass: `${HIGH_PERFORMANCE_CONFIG.colors.gradient} border ${HIGH_PERFORMANCE_CONFIG.colors.border} shadow-lg ${HIGH_PERFORMANCE_CONFIG.colors.shadow}`,
+        titleColor: HIGH_PERFORMANCE_CONFIG.colors.text,
+        valueColor: HIGH_PERFORMANCE_CONFIG.colors.text,
+        secondaryTextColor: HIGH_PERFORMANCE_CONFIG.colors.text.replace('100', '300'),
+      }
     }
+
+    if (isValorInvestidoCard) {
+      const colors = COLOR_SCHEME.poor
+      return {
+        cardClass: `bg-gradient-to-br from-gray-800 to-gray-800/70 border ${colors.border} shadow-md ${colors.shadow}`,
+        titleColor: 'text-gray-300',
+        valueColor: colors.text,
+        secondaryTextColor: 'text-gray-400',
+      }
+    }
+
     if (isROASCard) {
-      return getROASColors(lucroValue)
+      const colors = getROASColors(numValue)
+      return {
+        cardClass: `bg-gradient-to-br from-gray-800 to-gray-800/70 border ${colors.border} shadow-md ${colors.shadow}`,
+        titleColor: 'text-gray-300',
+        valueColor: colors.text,
+        secondaryTextColor: 'text-gray-400',
+      }
     }
-    return { text: 'text-gray-400', background: 'bg-gray-800/30', border: 'border-gray-600/50', shadow: 'shadow-gray-500/20' }
-  }
+    if (isLucroCard && additionalData?.roas) {
+      const colors = getProfitColors(numValue, additionalData.roas)
+       return {
+        cardClass: `bg-gradient-to-br from-gray-800 to-gray-800/70 border ${colors.border} shadow-md ${colors.shadow}`,
+        titleColor: 'text-gray-300',
+        valueColor: colors.text,
+        secondaryTextColor: 'text-gray-400',
+      }
+    }
 
-  const colors = getColorsForCard()
-  const shouldShowSpecialVisual = (isLucroCard || isROASCard) && colors.background !== 'bg-gray-800/30'
-  const isHighPerf = isLucroCard && additionalData?.faturamento ? 
-    checkHighPerformance(lucroValue, roasForColors) : isHighPerformance
-
-  // 🎨 Definir estilos baseados na configuração
-  const getCardStyle = () => {
-    if (isHighPerf) {
-      return HIGH_PERFORMANCE_CONFIG.colors.gradient + ` border-2 ${HIGH_PERFORMANCE_CONFIG.colors.border} shadow-xl ${HIGH_PERFORMANCE_CONFIG.colors.shadow}`
+    return {
+      cardClass: 'bg-gray-800 border border-gray-700/80 shadow-md',
+      titleColor: 'text-gray-400',
+      valueColor: 'text-white',
+      secondaryTextColor: 'text-gray-400',
     }
-    if (shouldShowSpecialVisual) {
-      return `bg-gradient-to-br from-gray-800 to-gray-900 border-2 ${colors.border} shadow-lg ${colors.shadow}`
-    }
-    return "bg-gray-800 border border-gray-700"
-  }
-
-  const getTitleColor = () => {
-    if (isHighPerf) return HIGH_PERFORMANCE_CONFIG.colors.text
-    if (shouldShowSpecialVisual) return colors.text.replace('400', '200')
-    return "text-gray-400"
-  }
-
-  const getValueColor = () => {
-    if (isHighPerf) return HIGH_PERFORMANCE_CONFIG.colors.text
-    if (shouldShowSpecialVisual) return colors.text.replace('400', '100')
-    return "text-white"
-  }
-  
-  const getIconStyle = () => {
-    if (isHighPerf) {
-      return `p-3 ${HIGH_PERFORMANCE_CONFIG.colors.background} rounded-full border-2 ${HIGH_PERFORMANCE_CONFIG.colors.border} shadow-lg ${HIGH_PERFORMANCE_CONFIG.colors.shadow}`
-    }
-    if (shouldShowSpecialVisual) {
-      return `p-3 ${colors.background} rounded-full border-2 ${colors.border} shadow-lg ${colors.shadow}`
-    }
-    return "p-3 bg-blue-900/30 rounded-full border border-blue-500/20"
-  }
-    
-  const getIconColor = () => {
-    if (isHighPerf) return HIGH_PERFORMANCE_CONFIG.colors.text
-    if (shouldShowSpecialVisual) return colors.text
-    return "text-blue-400"
-  }
+  })()
 
   return (
-    <div className={`${getCardStyle()} rounded-lg shadow-xl p-6 transition-all duration-300 ${isLoading ? 'opacity-60' : ''}`}>
+    <div
+      className={`rounded-xl p-4 flex flex-col justify-between h-full transition-all duration-300 ${cardClass} ${
+        isLoading ? 'opacity-60 animate-pulse' : ''
+      }`}
+    >
       {isHighPerformance && (
-        <div className="flex items-center justify-center mb-3">
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full border bg-green-900/50 border-green-500/30">
-            <span className="text-green-400 text-xs">🏆</span>
+        <div className="flex justify-start mb-2">
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border bg-green-900/60 border-green-500/40">
+            <span className="text-green-400">
+              <Zap size={10} />
+            </span>
             <span className="text-green-300 text-xs font-medium">Excelente</span>
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between">
+
+      <div className="flex justify-between items-start gap-3">
         <div className="flex-1">
-          <p className={`text-sm font-medium ${getTitleColor()}`}>{title}</p>
-          <div className={`text-2xl font-bold mt-1`}>
-            {title === 'ROAS Médio' ? (
-              <HighlightValue 
-                value={typeof value === 'string' ? parseFloat(value) : value}
-                format="number"
-                isHighPerformance={typeof value === 'string' ? parseFloat(value) > 2 : value > 2}
-                className={getValueColor()}
-              />
-            ) : title === 'Lucro Total' ? (
-              <div className="flex flex-col">
-                <HighlightValue 
-                  value={typeof value === 'string' ? parseFloat(value) : value}
-                  format="currency"
-                  isHighPerformance={false}
-                  className={getValueColor()}
-                />
-                {getProfitPercentage() && (
-                  <span className={`text-sm mt-1 ${
-                    shouldShowSpecialVisual ? colors.text.replace('400', '300') : 'text-gray-400'
-                  }`}>
-                    {getProfitPercentage()}% do faturamento
-                  </span>
-                )}
-              </div>
-            ) : isUpsellImpactCard ? (
-              <div className="flex flex-col">
-                <span className={getValueColor()}>
-                  {lucroValue > 0 ? `+${formatValue(value)}` : formatValue(value)}
+          <p className={`text-sm font-medium ${titleColor}`}>{title}</p>
+          
+          {profitPercentage ? (
+            <>
+              <div className="flex items-baseline gap-x-2 mt-1">
+                <p className={`text-2xl lg:text-3xl font-bold ${valueColor}`}>
+                  {formatValue(value)}
+                </p>
+                <span
+                  className={`inline-block px-1.5 py-0.5 text-xs font-bold rounded-md bg-black/20 border border-white/10`}
+                >
+                  {profitPercentage}%
                 </span>
-                                 {additionalData?.ticketBase && additionalData?.ticketAtual && (
-                   <div className="text-xs text-gray-400 mt-1 space-y-0.5">
-                     <div>Base: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(additionalData.ticketBase)}</div>
-                     <div>Atual: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(additionalData.ticketAtual)}</div>
-                   </div>
-                 )}
               </div>
-            ) : (
-              <span className={getValueColor()}>
-                {formatValue(value)}
-              </span>
-            )}
-          </div>
-          {change !== undefined && (
-            <div className="flex items-center mt-2">
-              {change > 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-400 mr-1" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-400 mr-1" />
-              )}
-              <span className={`text-sm ${change > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {Math.abs(change).toFixed(1)}%
-              </span>
+              <p className={`text-xs mt-0.5 opacity-70 ${secondaryTextColor}`}>
+                do faturamento
+              </p>
+            </>
+          ) : (
+            <p className={`text-2xl lg:text-3xl font-bold mt-1 ${valueColor}`}>
+              {formatValue(value)}
+            </p>
+          )}
+
+          {isUpsellImpactCard && additionalData?.ticketBase !== undefined && additionalData?.ticketAtual !== undefined && (
+              <div className={`text-xs mt-1 ${secondaryTextColor} space-y-0.5`}>
+              <span>Base: {formatValue(additionalData.ticketBase)}</span>
+              <span className="px-1">-&gt;</span>
+              <span>Atual: {formatValue(additionalData.ticketAtual)}</span>
             </div>
           )}
         </div>
-        <div className={getIconStyle()}>
-          <IconComponent className={`h-6 w-6 ${getIconColor()}`} />
-        </div>
+
       </div>
     </div>
   )

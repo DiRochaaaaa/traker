@@ -43,8 +43,8 @@ export interface ColorScheme {
 // 🎯 Configuração dos limites de performance
 export const PERFORMANCE_THRESHOLDS: PerformanceThresholds = {
   roas: {
-    excellent: 2.0,    // ROAS >= 2.0 = Verde
-    moderate: 1.0,     // ROAS >= 1.0 e < 2.0 = Amarelo
+    excellent: 1.5,    // ROAS > 1.5 = Verde
+    moderate: 1.0,     // ROAS >= 1.0 e <= 1.5 = Amarelo
     poor: 0.0          // ROAS < 1.0 = Vermelho
   },
   profit: {

@@ -519,43 +519,43 @@ export function Dashboard() {
             </div>
 
             {/* Skeleton para Main Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6 animate-pulse">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="h-4 bg-gray-700 rounded w-24"></div>
-                    <div className="h-6 w-6 bg-gray-700 rounded"></div>
+                <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-3 md:p-4 animate-pulse">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="h-3 bg-gray-700 rounded w-20"></div>
+                    <div className="h-5 w-5 bg-gray-700 rounded"></div>
                   </div>
-                  <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
-                  <div className="h-3 bg-gray-700 rounded w-20"></div>
+                  <div className="h-6 bg-gray-700 rounded w-24 mb-1.5"></div>
+                  <div className="h-2.5 bg-gray-700 rounded w-16"></div>
                 </div>
               ))}
             </div>
 
             {/* Skeleton para Secondary Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6 animate-pulse">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="h-4 bg-gray-700 rounded w-24"></div>
-                    <div className="h-6 w-6 bg-gray-700 rounded"></div>
+                <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-3 md:p-4 animate-pulse">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="h-3 bg-gray-700 rounded w-20"></div>
+                    <div className="h-5 w-5 bg-gray-700 rounded"></div>
                   </div>
-                  <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
-                  <div className="h-3 bg-gray-700 rounded w-20"></div>
+                  <div className="h-6 bg-gray-700 rounded w-24 mb-1.5"></div>
+                  <div className="h-2.5 bg-gray-700 rounded w-16"></div>
                 </div>
               ))}
             </div>
 
             {/* Skeleton para Upsell/Orderbump Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 md:p-6 animate-pulse">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="h-4 bg-gray-700 rounded w-24"></div>
-                    <div className="h-6 w-6 bg-gray-700 rounded"></div>
+                 <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-3 md:p-4 animate-pulse">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="h-3 bg-gray-700 rounded w-20"></div>
+                    <div className="h-5 w-5 bg-gray-700 rounded"></div>
                   </div>
-                  <div className="h-8 bg-gray-700 rounded w-32 mb-2"></div>
-                  <div className="h-3 bg-gray-700 rounded w-20"></div>
+                  <div className="h-6 bg-gray-700 rounded w-24 mb-1.5"></div>
+                  <div className="h-2.5 bg-gray-700 rounded w-16"></div>
                 </div>
               ))}
             </div>
@@ -624,91 +624,71 @@ export function Dashboard() {
         ) : (
           <>
             {/* Main Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-              <MetricsCard
-                title="Comissão Total"
-                value={totals.comissao}
-                format="currency"
-                icon="revenue"
-                isHighPerformance={isExceptionalPerformance}
-              />
-              <MetricsCard
-                title="Lucro Total"
-                value={totals.lucro}
-                format="currency"
-                icon="profit"
-                isHighPerformance={isExceptionalPerformance}
-                additionalData={{ faturamento: totals.faturamento }}
-              />
-              <MetricsCard
-                title="ROAS Médio (Comissão)"
-                value={totals.roas}
-                format="number"
-                icon="roas"
-                isHighPerformance={isExceptionalPerformance}
-              />
-              <MetricsCard
-                title="Compras Principais"
-                value={totals.compras}
-                format="number"
-                icon="purchases"
-                isHighPerformance={isExceptionalPerformance}
-              />
-            </div>
-
-            {/* Secondary Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
               <MetricsCard
                 title="Faturamento Total"
                 value={totals.faturamento}
                 format="currency"
-                icon="revenue"
+              />
+               <MetricsCard
+                title="Comissão Total"
+                value={totals.comissao}
+                format="currency"
+                isHighPerformance={isExceptionalPerformance}
               />
               <MetricsCard
                 title="Valor Investido"
                 value={totals.valorUsado}
                 format="currency"
-                icon="revenue"
               />
               <MetricsCard
-                title="Ticket Médio"
-                value={totals.ticketMedio}
+                title="Lucro Total"
+                value={totals.lucro}
                 format="currency"
-                icon="revenue"
+                isHighPerformance={isExceptionalPerformance}
+                additionalData={{ faturamento: totals.faturamento, roas: totals.roas }}
+              />
+              <MetricsCard
+                title="ROAS Médio (Comissão)"
+                value={totals.roas}
+                format="number"
+                isHighPerformance={isExceptionalPerformance}
               />
               <MetricsCard
                 title="CPA Médio"
                 value={totals.cpa}
                 format="currency"
-                icon="cpa"
               />
-            </div>
-
-            {/* Upsell/Orderbump Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+              <MetricsCard
+                title="Compras Principais"
+                value={totals.compras}
+                format="number"
+                isHighPerformance={isExceptionalPerformance}
+              />
+              <MetricsCard
+                title="Ticket Médio"
+                value={totals.ticketMedio}
+                format="currency"
+              />
               <MetricsCard
                 title="Total Upsells"
                 value={totals.upsellCount}
                 format="number"
-                icon="purchases"
               />
               <MetricsCard
                 title="Total Orderbumps"
                 value={totals.orderbumpCount}
                 format="number"
-                icon="purchases"
               />
               <MetricsCard
                 title="Taxa de Upsell"
                 value={totals.compras > 0 ? (totals.upsellCount / totals.compras) * 100 : 0}
                 format="percentage"
-                icon="roas"
               />
               <MetricsCard
                 title="Impacto Upsell no Ticket"
                 value={totals.taxaUpsellTicket}
                 format="percentage"
-                icon="roas"
                 additionalData={{
                   ticketBase: totals.ticketMedioBase,
                   ticketAtual: totals.ticketMedio

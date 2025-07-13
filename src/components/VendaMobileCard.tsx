@@ -1,13 +1,10 @@
 
 import { Venda } from './VendasPage'
 import {
-  Tag,
   Clock,
   User,
   Box,
   Hash,
-  ArrowDown,
-  ArrowUp,
 } from 'lucide-react'
 
 interface VendaMobileCardProps {
