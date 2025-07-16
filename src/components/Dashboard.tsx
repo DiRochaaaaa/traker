@@ -304,13 +304,7 @@ export function Dashboard() {
         {/* Billing Info */}
         <BillingInfoCard accounts={availableAccounts.map(a => ({ id: `act_${a.accountId}`, name: a.name }))} />
 
-        {/* Date Selector */}
-        <div className="mb-4 md:mb-6">
-          <DateSelector
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-          />
-        </div>
+
 
 
 
@@ -507,6 +501,14 @@ export function Dashboard() {
                 <p className="text-gray-400 text-center py-8">Nenhuma venda registrada no período.</p>
             )}
             </div>
+        </div>
+
+        {/* Date Selector */}
+        <div className="mb-4 md:mb-6">
+          <DateSelector
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+          />
         </div>
 
         {/* Metrics Cards - Sempre visíveis com loading states */}
