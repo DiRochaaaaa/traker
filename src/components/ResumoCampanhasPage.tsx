@@ -2,7 +2,7 @@
 
 import { useFacebookData } from '@/hooks/useFacebookData'
 import { MetricsCard } from './MetricsCard'
-import { DateSelector } from './DateSelector'
+import { FilterBar } from './FilterBar'
 import { CampaignsTable } from './CampaignsTable'
 
 export function ResumoCampanhasPage() {
@@ -23,7 +23,13 @@ export function ResumoCampanhasPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">Resumo de Campanhas</h1>
 
         <div className="mb-6 md:mb-8">
-          <DateSelector selectedPeriod={selectedPeriod} onPeriodChange={setSelectedPeriod} />
+          <FilterBar
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            selectedAccount="all"
+            onAccountChange={() => {}} // Não usado nesta página
+            availableAccounts={[]} // Não usado nesta página
+          />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">

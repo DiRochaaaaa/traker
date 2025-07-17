@@ -21,7 +21,7 @@ function getDatePreset(period: string) {
     case 'yesterday':
       return 'yesterday'
     case 'last_7_days':
-      return 'last_7_days'
+      return 'last_7d' // Facebook usa 'last_7d' não 'last_7_days'
     case 'this_month':
       return 'this_month'
     default:
@@ -57,8 +57,9 @@ export async function GET(request: NextRequest) {
   const account = searchParams.get('account') || 'all'
   const period = searchParams.get('period') || 'today'
 
-  console.log(`📊 API called with period: ${period}, account: ${account}`)
-  console.log(`🏢 Available accounts: ${allAccounts.length} found`)
+  // Importar logger no topo do arquivo
+  const { logger } = await import('@/lib/logger')
+  logger.api('facebook/campaigns', 'start', { period, account, availableAccounts: allAccounts.length })
 
   try {
     let accounts = []

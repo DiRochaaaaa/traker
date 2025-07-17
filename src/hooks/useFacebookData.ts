@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Venda } from '@/lib/supabase'
+import { logger } from '@/lib/logger'
 
 export interface FacebookCampaignData {
   id: string
@@ -117,7 +118,7 @@ export function useFacebookData() {
     const cachedData = getCachedData(cacheKey)
     if (cachedData) {
       setCampaigns(cachedData as FacebookCampaignData[])
-      console.log(`⚡ Cache HIT: Campanhas ${account} ${period} (sem request)`)
+      logger.cache(`Cache HIT: Campanhas ${account} ${period}`)
       return
     }
 
@@ -125,7 +126,7 @@ export function useFacebookData() {
     setError(null)
     
     try {
-      console.log(`🚀 Cache MISS: Buscando campanhas ${account} ${period}`)
+      logger.api('facebook/campaigns', `Fetching campaigns ${account} ${period}`)
       const response = await fetch(`/api/facebook/campaigns?account=${account}&period=${period}`)
       const result = await response.json()
       
@@ -136,8 +137,9 @@ export function useFacebookData() {
       setCampaigns(result.data)
       setCachedData(cacheKey, result.data)
       setLastUpdate(new Date())
-      console.log(`✅ Campanhas carregadas e cacheadas: ${result.data.length} campanhas`)
+      logger.info('CAMPAIGNS', `Loaded ${result.data.length} campaigns`)
     } catch (err) {
+      logger.error('CAMPAIGNS', 'Failed to fetch campaigns', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(prev => ({ ...prev, campaigns: false, isInitialLoad: false }))
@@ -150,12 +152,10 @@ export function useFacebookData() {
     const cachedData = getCachedData(cacheKey)
     if (cachedData) {
       setAllCampaigns(cachedData as FacebookCampaignData[])
-      console.log(`⚡ Cache HIT: Campanhas all ${period}`)
       return
     }
 
     try {
-      console.log(`🚀 Buscando todas as campanhas ${period}`)
       const response = await fetch(`/api/facebook/campaigns?account=all&period=${period}`)
       const result = await response.json()
 
@@ -165,7 +165,6 @@ export function useFacebookData() {
 
       setAllCampaigns(result.data)
       setCachedData(cacheKey, result.data)
-      console.log(`✅ Todas as campanhas carregadas: ${result.data.length}`)
     } catch (err) {
       console.error('Erro ao buscar todas as campanhas:', err)
     }
@@ -174,32 +173,31 @@ export function useFacebookData() {
   const fetchVendas = useCallback(async (period: DatePeriod = 'today') => {
     const cacheKey = getCacheKey('vendas', undefined, period)
     
-    // ⚡ CACHE HIT - Retorno imediato sem loading  
     const cachedData = getCachedData(cacheKey)
     if (cachedData) {
       setVendas(cachedData as Venda[])
-      console.log(`⚡ Cache HIT: Vendas ${period} (sem request)`)
+      logger.cache(`Cache HIT: Vendas ${period}`)
       return
     }
 
     setLoading(prev => ({ ...prev, vendas: true }))
     
     try {
-      console.log(`🚀 Cache MISS: Buscando vendas ${period}`)
+      logger.api('vendas', `Fetching vendas ${period}`)
       const response = await fetch(`/api/vendas?period=${period}`)
       const result = await response.json()
       
       if (result.success) {
-        console.log(`✅ Vendas carregadas: ${result.data.length} vendas`)
         setVendas(result.data)
         setCachedData(cacheKey, result.data)
         setLastUpdate(new Date())
+        logger.info('VENDAS', `Loaded ${result.data.length} vendas`)
       } else {
-        console.error('❌ Failed to fetch vendas:', result.error)
+        logger.error('VENDAS', 'Failed to fetch vendas', result.error)
         setVendas([])
       }
     } catch (err) {
-      console.error('💥 Error fetching vendas:', err)
+      logger.error('VENDAS', 'Error fetching vendas', err)
       setVendas([])
     } finally {
       setLoading(prev => ({ ...prev, vendas: false, isInitialLoad: false }))
@@ -208,7 +206,6 @@ export function useFacebookData() {
 
   // 🚀 CARREGAMENTO PARALELO ULTRA-RÁPIDO
   const fetchAllData = useCallback(async (account: string = 'all', period: DatePeriod = 'today') => {
-    console.log(`🔥 INICIANDO carregamento paralelo: ${account} ${period}`)
     setLoading(prev => ({ ...prev, metrics: true }))
 
     const startTime = Date.now()
@@ -221,13 +218,13 @@ export function useFacebookData() {
     ])
     
     const duration = Date.now() - startTime
-    console.log(`⚡ CONCLUÍDO em ${duration}ms - Cache hits: ${cacheHit}`)
+    logger.performance('DATA_FETCH', duration, { account, period, cacheHit })
     setLoading(prev => ({ ...prev, metrics: false }))
   }, [fetchCampaigns, fetchVendas, fetchCampaignsAll, cacheHit])
 
   // 🔄 FORCE REFRESH - Limpa cache e força carregamento
   const forceRefresh = useCallback(async () => {
-    console.log('🔄 FORCE REFRESH iniciado - limpando cache e forçando carregamento')
+    logger.info('REFRESH', 'Force refresh initiated')
     
     // Limpar todo o cache para garantir dados frescos
     setCache(new Map())
@@ -255,10 +252,10 @@ export function useFacebookData() {
       ])
       
       const duration = Date.now() - startTime
-      console.log(`✅ FORCE REFRESH concluído em ${duration}ms`)
+      logger.performance('FORCE_REFRESH', duration)
       setLastUpdate(new Date())
     } catch (error) {
-      console.error('❌ Erro no force refresh:', error)
+      logger.error('REFRESH', 'Force refresh failed', error)
       setError(error instanceof Error ? error.message : 'Erro desconhecido')
     } finally {
       setLoading(() => ({ 
@@ -272,7 +269,7 @@ export function useFacebookData() {
 
   // 🎯 REFRESH INTELIGENTE (sem loading principal para UX melhor)
   const smartRefresh = useCallback(async () => {
-    console.log('🔄 Smart refresh - mantendo dados enquanto atualiza')
+    logger.info('REFRESH', 'Smart refresh initiated')
     
     // Não mostrar loading principal, manter dados atuais visíveis
     await Promise.all([
@@ -281,7 +278,7 @@ export function useFacebookData() {
       fetchCampaignsAll(selectedPeriod)
     ])
     
-    console.log('✨ Smart refresh concluído')
+    logger.info('REFRESH', 'Smart refresh completed')
   }, [fetchCampaigns, fetchVendas, fetchCampaignsAll, selectedAccount, selectedPeriod])
 
   // Função para normalizar valores monetários (aceita tanto 10.00 quanto 10,00)
@@ -458,16 +455,15 @@ export function useFacebookData() {
         bidStrategy: campaign.bid_strategy
       }
       
+      // Log apenas em debug mode
       if (campaignVendas.length > 0) {
-        console.log(`  📊 Métricas calculadas (SUPABASE): ${finalCompras} compras, ROAS ${roas === Infinity ? '∞' : roas.toFixed(2)}, Lucro R$ ${lucro.toFixed(2)}`)
+        logger.debug('METRICS', `Campaign ${campaign.name}: ${finalCompras} purchases, ROAS ${roas === Infinity ? '∞' : roas.toFixed(2)}, Profit R$ ${lucro.toFixed(2)}`)
       }
       
       return metrics
     }
 
-    console.log('🔄 Processando métricas...')
-    console.log(`📊 Campanhas do Facebook: ${sourceCampaigns.length}`)
-    console.log(`💰 Vendas no Supabase: ${vendas.length}`)
+    logger.info('METRICS', `Processing metrics: ${sourceCampaigns.length} campaigns, ${vendas.length} sales`)
 
     // Log dos campaign_ids disponíveis
     const campaignIds = sourceCampaigns.map(c => c.id)
@@ -479,19 +475,13 @@ export function useFacebookData() {
       )
     ]
 
-    console.log('🎯 Campaign IDs das campanhas Facebook:', campaignIds)
-    console.log('🎯 Campaign IDs das vendas Supabase:', vendasCampaignIds)
-
     // Verificar correlação
     const matches = vendasCampaignIds.filter(id => campaignIds.includes(id))
     const vendaOrfas = vendasCampaignIds.filter(id => !campaignIds.includes(id))
 
-    console.log('✅ Matches encontrados:', matches)
+    logger.debug('METRICS', `Campaign matches: ${matches.length}, orphan sales: ${vendaOrfas.length}`)
     if (vendaOrfas.length > 0) {
-      console.log('⚠️ Vendas sem campanha correspondente:', vendaOrfas)
-      console.log(
-        `⚠️ ${vendaOrfas.length} campaign_ids de vendas não encontrados nas campanhas do Facebook`
-      )
+      logger.warn('METRICS', `${vendaOrfas.length} sales without corresponding Facebook campaigns`, vendaOrfas)
     }
 
     // Processar campanhas do Facebook
@@ -505,21 +495,11 @@ export function useFacebookData() {
         venda => venda.campaign_id && String(venda.campaign_id) === campaign.id
       )
 
-      // Log detalhado para cada campanha
+      // Log apenas campanhas com problemas em debug mode
       if (campaignVendas.length > 0) {
-        console.log(`📈 Campanha "${campaign.name}" (${campaign.id}):`)
-        console.log(`  💰 Gasto Facebook: R$ ${spend.toFixed(2)}`)
-        console.log(`  🛒 Vendas encontradas: ${campaignVendas.length}`)
-
-        campaignVendas.forEach((venda, i) => {
-          console.log(
-            `    ${i + 1}. ${venda.produto} - R$ ${venda.faturamento_bruto} (${venda.tipo || 'main'})`
-          )
-        })
+        logger.debug('CAMPAIGN_MATCH', `${campaign.name}: R$ ${spend.toFixed(2)} spend, ${campaignVendas.length} sales`)
       } else if (spend > 0) {
-        console.log(
-          `⚠️ Campanha "${campaign.name}" (${campaign.id}): Gasto R$ ${spend.toFixed(2)} mas sem vendas associadas`
-        )
+        logger.warn('CAMPAIGN_ORPHAN', `${campaign.name}: R$ ${spend.toFixed(2)} spend but no sales found`)
       }
 
       return createCampaignMetrics(campaign, campaignVendas, spend, cpm)
@@ -529,15 +509,7 @@ export function useFacebookData() {
     const orphanCampaignMetrics = vendaOrfas.map(campaignId => {
       const campaignVendas = vendas.filter(venda => String(venda.campaign_id) === campaignId)
 
-      console.log(`🔍 Campanha órfã "${campaignId}":`)
-      console.log('  💰 Gasto Facebook: R$ 0.00 (não encontrada na API)')
-      console.log(`  🛒 Vendas encontradas: ${campaignVendas.length}`)
-
-      campaignVendas.forEach((venda, i) => {
-        console.log(
-          `    ${i + 1}. ${venda.produto} - R$ ${venda.faturamento_bruto} (${venda.tipo || 'main'})`
-        )
-      })
+      logger.warn('ORPHAN_CAMPAIGN', `Campaign ${campaignId}: ${campaignVendas.length} sales but not found in Facebook API`)
 
       // Criar campanha fictícia para as vendas órfãs
       const orphanCampaign = {

@@ -26,7 +26,7 @@ function getDateRange(period: string) {
       return { start: yesterdayStr, end: yesterdayStr }
     case 'last_7_days':
       const weekAgo = new Date(brasiliaTime)
-      weekAgo.setDate(brasiliaTime.getDate() - 7)
+      weekAgo.setDate(brasiliaTime.getDate() - 6)
       const weekAgoStr = weekAgo.toISOString().split('T')[0]
       return { start: weekAgoStr, end: today }
     case 'this_month':

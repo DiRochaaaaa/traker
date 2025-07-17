@@ -159,7 +159,8 @@ export function MetricsCard({
           
           {profitPercentage ? (
             <>
-              <div className="flex items-baseline gap-x-2 mt-1">
+              {/* Desktop: valor e percentual na mesma linha */}
+              <div className="hidden md:flex items-baseline gap-x-2 mt-1">
                 <p className={`text-2xl lg:text-3xl font-bold ${valueColor}`}>
                   {formatValue(value)}
                 </p>
@@ -169,7 +170,26 @@ export function MetricsCard({
                   {profitPercentage}%
                 </span>
               </div>
-              <p className={`text-xs mt-0.5 opacity-70 ${secondaryTextColor}`}>
+              
+              {/* Mobile: valor e percentual em linhas separadas */}
+              <div className="md:hidden mt-1">
+                <p className={`text-2xl font-bold ${valueColor}`}>
+                  {formatValue(value)}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span
+                    className={`inline-block px-1.5 py-0.5 text-xs font-bold rounded-md bg-black/20 border border-white/10`}
+                  >
+                    {profitPercentage}%
+                  </span>
+                  <span className={`text-xs opacity-70 ${secondaryTextColor}`}>
+                    do faturamento
+                  </span>
+                </div>
+              </div>
+              
+              {/* Desktop: texto "do faturamento" */}
+              <p className={`hidden md:block text-xs mt-0.5 opacity-70 ${secondaryTextColor}`}>
                 do faturamento
               </p>
             </>

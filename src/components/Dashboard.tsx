@@ -5,9 +5,9 @@ import { MetricsCard } from './MetricsCard'
 import { Logo } from './Logo'
 import { CampaignsTable } from './CampaignsTable'
 import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
-import { DateSelector } from './DateSelector'
+import { FilterBar } from './FilterBar'
 import { ColorConfigModal } from './ColorConfigModal'
-import { RefreshCw, Filter, ShoppingBag, Settings, Megaphone, ArrowUp } from 'lucide-react'
+import { RefreshCw, ShoppingBag, Settings, Megaphone, ArrowUp } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import BillingInfoCard from './BillingInfoCard'
@@ -308,29 +308,7 @@ export function Dashboard() {
 
 
 
-        {/* Account Filter */}
-        <div className="mb-4 md:mb-6">
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-            <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-y-0 md:space-x-4">
-              <div className="flex items-center space-x-2">
-                <Filter className="h-5 w-5 text-blue-400" />
-                <span className="text-sm font-medium text-gray-300">Conta de Anúncios:</span>
-              </div>
-              <select
-                value={selectedAccount}
-                onChange={(e) => setSelectedAccount(e.target.value)}
-                className="block w-full md:w-auto px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
-              >
-                <option value="all">Todas as Contas</option>
-                {availableAccounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name} ({account.accountId})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
+
 
         {/* Account Summaries */}
         <AccountSummaryTable summaries={accountSummaries} isLoading={loading.campaigns || loading.vendas} />
@@ -503,13 +481,16 @@ export function Dashboard() {
             </div>
         </div>
 
-        {/* Date Selector */}
-        <div className="mb-4 md:mb-6">
-          <DateSelector
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-          />
-        </div>
+
+
+        {/* Unified Filter Bar */}
+        <FilterBar
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
+          selectedAccount={selectedAccount}
+          onAccountChange={setSelectedAccount}
+          availableAccounts={availableAccounts}
+        />
 
         {/* Metrics Cards - Sempre visíveis com loading states */}
         {(loading.isInitialLoad || loading.campaigns || loading.vendas) ? (

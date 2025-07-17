@@ -25,7 +25,7 @@ function formatDateRange(period: DatePeriod): string {
       return yesterday.toLocaleDateString('pt-BR')
     case 'last_7_days':
       const last7Days = new Date(today)
-      last7Days.setDate(today.getDate() - 7)
+      last7Days.setDate(today.getDate() - 6)
       return `${last7Days.toLocaleDateString('pt-BR')} - ${today.toLocaleDateString('pt-BR')}`
     case 'this_month':
       const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -42,23 +42,22 @@ export function DateSelector({ selectedPeriod, onPeriodChange }: DateSelectorPro
         <Calendar className="h-5 w-5 text-blue-400" />
         <span className="text-sm font-medium text-gray-300">Período:</span>
       </div>
-      
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {periodOptions.map((option) => (
           <button
             key={option.value}
             onClick={() => onPeriodChange(option.value)}
-            className={`px-3 py-2 text-xs sm:text-sm rounded-md transition-colors text-center ${
-              selectedPeriod === option.value
-                ? 'bg-blue-600 text-white border border-blue-500'
-                : 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
-            }`}
+            className={`px-3 py-2 text-xs sm:text-sm rounded-md transition-colors text-center ${selectedPeriod === option.value
+              ? 'bg-blue-600 text-white border border-blue-500'
+              : 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
+              }`}
           >
             {option.label}
           </button>
         ))}
       </div>
-      
+
       <div className="mt-3 text-xs text-gray-400">
         <span className="font-medium">Período selecionado:</span>{' '}
         <span className="break-all">{formatDateRange(selectedPeriod)}</span>
