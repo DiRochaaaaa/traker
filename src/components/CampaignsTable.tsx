@@ -195,9 +195,9 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
       </div>
 
       {/* Desktop: Table */}
-      <div className="hidden md:block overflow-x-auto modal-scroll">
+      <div className="hidden md:block overflow-x-auto modal-scroll max-h-[70vh] overflow-y-auto">
         <table className="w-full divide-y divide-gray-700" style={{minWidth: '1300px'}}>
-          <thead className="bg-gray-900/50">
+          <thead className="bg-gray-900 sticky top-0 z-10 shadow-md">
             <tr>
               {/* Controle - Nova coluna à esquerda */}
               <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[6%]">
