@@ -51,6 +51,10 @@ export interface CampaignMetrics {
   account_id: string
   budgetType: 'CBO' | 'ABO' | 'UNKNOWN'
   bidStrategy?: string
+  // Novas métricas para o funil
+  clicks: number
+  impressions: number
+  initiateCheckout: number
 }
 
 export interface PlataformaMetrics {
@@ -359,7 +363,7 @@ export function useFacebookData() {
 
   const processMetricsFor = useCallback((sourceCampaigns: FacebookCampaignData[]): CampaignMetrics[] => {
     // Função auxiliar para criar métricas de campanha
-    const createCampaignMetrics = (campaign: FacebookCampaignData, campaignVendas: Venda[], spend: number, cpm: number): CampaignMetrics => {
+    const createCampaignMetrics = (campaign: FacebookCampaignData, campaignVendas: Venda[], spend: number, cpm: number, clicks: number, impressions: number, initiateCheckout: number): CampaignMetrics => {
       // Separar vendas por tipo
       const vendasMain = campaignVendas.filter(venda => {
         const tipo = venda.tipo?.toLowerCase() || ''
@@ -452,7 +456,11 @@ export function useFacebookData() {
         campaign_id: campaign.id,
         account_id: campaign.account_id,
         budgetType: determineBudgetType(campaign),
-        bidStrategy: campaign.bid_strategy
+        bidStrategy: campaign.bid_strategy,
+        // Novas métricas para o funil
+        clicks,
+        impressions,
+        initiateCheckout
       }
       
       // Log apenas em debug mode
@@ -489,6 +497,14 @@ export function useFacebookData() {
       const insights = campaign.insights?.data?.[0]
       const spend = parseFloat(insights?.spend || '0')
       const cpm = parseFloat(insights?.cpm || '0')
+      const clicks = parseFloat(insights?.clicks || '0')
+      const impressions = parseFloat(insights?.impressions || '0')
+      
+      // Buscar initiate_checkout nas actions
+      const initiateCheckoutAction = insights?.actions?.find(
+        (action) => action.action_type === 'initiate_checkout'
+      )
+      const initiateCheckout = initiateCheckoutAction ? parseFloat(initiateCheckoutAction.value) : 0
 
       // Buscar vendas para esta campanha
       const campaignVendas = vendas.filter(
@@ -502,7 +518,7 @@ export function useFacebookData() {
         logger.warn('CAMPAIGN_ORPHAN', `${campaign.name}: R$ ${spend.toFixed(2)} spend but no sales found`)
       }
 
-      return createCampaignMetrics(campaign, campaignVendas, spend, cpm)
+      return createCampaignMetrics(campaign, campaignVendas, spend, cpm, clicks, impressions, initiateCheckout)
     })
 
     // Processar campanhas órfãs (que têm vendas mas não aparecem no Facebook)
@@ -522,7 +538,7 @@ export function useFacebookData() {
         insights: { data: [] }
       }
 
-      return createCampaignMetrics(orphanCampaign, campaignVendas, 0, 0)
+      return createCampaignMetrics(orphanCampaign, campaignVendas, 0, 0, 0, 0, 0)
     })
 
     const allMetrics = [...facebookCampaignMetrics]

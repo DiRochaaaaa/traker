@@ -6,6 +6,7 @@ import { Logo } from './Logo'
 import { CampaignsTable } from './CampaignsTable'
 import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { FilterBar } from './FilterBar'
+import { ConversionFunnel } from './ConversionFunnel'
 import { ColorConfigModal } from './ColorConfigModal'
 import { RefreshCw, ShoppingBag, Settings, Megaphone, ArrowUp } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
@@ -482,6 +483,9 @@ export function Dashboard() {
         </div>
 
 
+
+        {/* Conversion Funnel */}
+        <ConversionFunnel />
 
         {/* Unified Filter Bar */}
         <FilterBar
