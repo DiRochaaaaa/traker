@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, Filter, Building2, Clock } from 'lucide-react'
+import React from 'react'
 import { DatePeriod } from '@/hooks/useFacebookData'
 
 interface FilterBarProps {
@@ -50,31 +50,16 @@ export function FilterBar({
     const selectedAccountName = availableAccounts.find(acc => acc.id === selectedAccount)?.name || 'Todas as Contas'
 
     return (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-4">
-                <Filter className="h-5 w-5 text-blue-400" />
-                <h3 className="text-lg font-semibold text-white">Filtros</h3>
-                <div className="ml-auto flex items-center gap-2 text-xs text-gray-400">
-                    <Clock className="h-4 w-4" />
-                    <span>{formatDateRange(selectedPeriod)}</span>
-                </div>
-            </div>
-
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-4">
             {/* Filters in one line */}
-            <div className="flex flex-row gap-4">
+            <div className="flex flex-row gap-3">
                 {/* Period Filter */}
                 <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="h-4 w-4 text-blue-400" />
-                        <span className="text-sm font-medium text-gray-300">Período:</span>
-                    </div>
-                    
                     <div className="relative">
                         <select
                             value={selectedPeriod}
                             onChange={(e) => onPeriodChange(e.target.value as DatePeriod)}
-                            className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer text-sm"
                         >
                             {periodOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
@@ -95,16 +80,11 @@ export function FilterBar({
                 {/* Account Filter - Only show if accounts are available */}
                 {availableAccounts.length > 0 && (
                     <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Building2 className="h-4 w-4 text-blue-400" />
-                            <span className="text-sm font-medium text-gray-300">Conta de Anúncios:</span>
-                        </div>
-
                         <div className="relative">
                             <select
                                 value={selectedAccount}
                                 onChange={(e) => onAccountChange(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer text-sm"
                             >
                                 <option value="all">Todas as Contas</option>
                                 {availableAccounts.map((account) => (

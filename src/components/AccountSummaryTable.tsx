@@ -34,6 +34,29 @@ const formatCurrency = (value: number) => {
 export function AccountSummaryTable({ summaries, isLoading = false }: AccountSummaryTableProps) {
   const rows = useMemo(() => summaries, [summaries])
 
+  // Calcular totais
+  const totals = useMemo(() => {
+    if (rows.length === 0) return null
+    
+    const totalCompras = rows.reduce((sum, row) => sum + row.compras, 0)
+    const totalFaturamento = rows.reduce((sum, row) => sum + row.faturamento, 0)
+    const totalComissao = rows.reduce((sum, row) => sum + row.comissao, 0)
+    const totalValorUsado = rows.reduce((sum, row) => sum + row.valorUsado, 0)
+    const totalLucro = rows.reduce((sum, row) => sum + row.lucro, 0)
+    const totalRoas = totalValorUsado > 0 ? totalFaturamento / totalValorUsado : 0
+    const totalCpa = totalCompras > 0 ? totalValorUsado / totalCompras : 0
+    
+    return {
+      compras: totalCompras,
+      faturamento: totalFaturamento,
+      comissao: totalComissao,
+      valorUsado: totalValorUsado,
+      lucro: totalLucro,
+      roas: totalRoas,
+      cpa: totalCpa
+    }
+  }, [rows])
+
   if (isLoading) {
     return (
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 animate-pulse mb-6">
@@ -67,6 +90,33 @@ export function AccountSummaryTable({ summaries, isLoading = false }: AccountSum
         {rows.map(row => (
           <AccountMobileCard key={row.accountId} summary={row} />
         ))}
+        
+        {/* Total card for mobile */}
+        {totals && (
+          <div className="bg-gray-700/50 border-2 border-blue-500/30 rounded-lg p-2.5 mt-3">
+            <div className="mb-2">
+              <h4 className="text-sm font-bold text-blue-300">TOTAL GERAL</h4>
+            </div>
+            <div className="grid grid-cols-4 gap-1 text-xs">
+              <div className="text-center bg-gray-800/30 rounded p-1">
+                <div className="text-gray-400">Vendas</div>
+                <div className="text-white font-medium">{totals.compras}</div>
+              </div>
+              <div className="text-center bg-gray-800/30 rounded p-1">
+                <div className="text-gray-400">Fatur.</div>
+                <div className="text-green-400 font-medium text-[10px]">{formatCurrency(totals.faturamento)}</div>
+              </div>
+              <div className="text-center bg-gray-800/30 rounded p-1">
+                <div className="text-gray-400">Lucro</div>
+                <div className={`font-medium text-[10px] ${getProfitColor(totals.lucro)}`}>{formatCurrency(totals.lucro)}</div>
+              </div>
+              <div className="text-center bg-gray-800/30 rounded p-1">
+                <div className="text-gray-400">ROAS</div>
+                <div className={`font-medium ${getRoasColor(totals.roas)}`}>{totals.roas.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Desktop table */}
@@ -102,6 +152,22 @@ export function AccountSummaryTable({ summaries, isLoading = false }: AccountSum
                 <td className="px-3 py-3 text-right text-gray-300">{formatCurrency(row.cpa)}</td>
               </tr>
             ))}
+            
+            {/* Total row */}
+            {totals && (
+              <tr className="bg-gray-700/50 border-t-2 border-blue-500/30">
+                <td className="px-3 py-3 text-blue-300 font-bold">
+                  TOTAL GERAL
+                </td>
+                <td className="px-3 py-3 text-right text-white font-bold">{totals.compras}</td>
+                <td className="px-3 py-3 text-right text-green-400 font-bold">{formatCurrency(totals.faturamento)}</td>
+                <td className="px-3 py-3 text-right text-orange-400 font-bold">{formatCurrency(totals.comissao)}</td>
+                <td className="px-3 py-3 text-right text-blue-400 font-bold">{formatCurrency(totals.valorUsado)}</td>
+                <td className={`px-3 py-3 text-right font-bold ${getProfitColor(totals.lucro)}`}>{formatCurrency(totals.lucro)}</td>
+                <td className={`px-3 py-3 text-right font-bold ${getRoasColor(totals.roas)}`}>{totals.roas.toFixed(2)}</td>
+                <td className="px-3 py-3 text-right text-white font-bold">{formatCurrency(totals.cpa)}</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
