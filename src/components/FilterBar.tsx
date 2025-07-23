@@ -18,27 +18,7 @@ const periodOptions = [
     { value: 'this_month' as DatePeriod, label: 'Este mês' }
 ]
 
-function formatDateRange(period: DatePeriod): string {
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(today.getDate() - 1)
 
-    switch (period) {
-        case 'today':
-            return today.toLocaleDateString('pt-BR')
-        case 'yesterday':
-            return yesterday.toLocaleDateString('pt-BR')
-        case 'last_7_days':
-            const last7Days = new Date(today)
-            last7Days.setDate(today.getDate() - 6)
-            return `${last7Days.toLocaleDateString('pt-BR')} - ${today.toLocaleDateString('pt-BR')}`
-        case 'this_month':
-            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-            return `${firstDayOfMonth.toLocaleDateString('pt-BR')} - ${today.toLocaleDateString('pt-BR')}`
-        default:
-            return today.toLocaleDateString('pt-BR')
-    }
-}
 
 export function FilterBar({
     selectedPeriod,
@@ -47,7 +27,7 @@ export function FilterBar({
     onAccountChange,
     availableAccounts
 }: FilterBarProps) {
-    const selectedAccountName = availableAccounts.find(acc => acc.id === selectedAccount)?.name || 'Todas as Contas'
+
 
     return (
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-4">
