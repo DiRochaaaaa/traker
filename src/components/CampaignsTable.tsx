@@ -170,13 +170,7 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
   }
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
-      <div className="p-3 md:p-4 border-b border-gray-700">
-        <h2 className="text-lg md:text-xl font-semibold text-white">
-          📊 Campanhas ({campaigns.length})
-        </h2>
-      </div>
-
+    <div>
       {/* Mobile: Campaign Cards */}
       <div className="block md:hidden p-3 space-y-3">
         {campaigns.map((campaign) => (
@@ -436,4 +430,4 @@ export function CampaignsTable({ campaigns, onRefresh, isLoading = false }: Camp
       </div>
     </div>
   )
-} 
+}

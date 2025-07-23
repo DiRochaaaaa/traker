@@ -8,7 +8,7 @@ import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { FilterBar } from './FilterBar'
 import { ConversionFunnel } from './ConversionFunnel'
 import { ColorConfigModal } from './ColorConfigModal'
-import { RefreshCw, ShoppingBag, Settings, Megaphone, ArrowUp } from 'lucide-react'
+import { RefreshCw, ShoppingBag, Settings, Megaphone, ArrowUp, ChevronDown, ChevronUp } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import BillingInfoCard from './BillingInfoCard'
@@ -23,6 +23,7 @@ export function Dashboard() {
   const [colorConfigOpen, setColorConfigOpen] = useState(false)
   const [availableAccounts, setAvailableAccounts] = useState<AccountInfo[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [campaignsMinimized, setCampaignsMinimized] = useState(true) // Minimizado por padrão no mobile
   
   const {
     loading,
@@ -501,7 +502,34 @@ export function Dashboard() {
             </div>
 
             {/* Campaigns Table */}
-            <CampaignsTable campaigns={metrics} />
+            <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
+              {/* Header com botão de minimizar (apenas mobile) */}
+              <div className="md:hidden flex items-center justify-between p-4 border-b border-gray-700">
+                <h3 className="text-lg font-semibold text-white">📊 Campanhas ({metrics.length})</h3>
+                <button
+                  onClick={() => setCampaignsMinimized(!campaignsMinimized)}
+                  className="flex items-center justify-center p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  {campaignsMinimized ? (
+                    <ChevronDown className="h-5 w-5" />
+                  ) : (
+                    <ChevronUp className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              
+              {/* Header para desktop */}
+              <div className="hidden md:block p-3 md:p-4 border-b border-gray-700">
+                <h2 className="text-lg md:text-xl font-semibold text-white">
+                  📊 Campanhas ({metrics.length})
+                </h2>
+              </div>
+              
+              {/* Conteúdo da tabela */}
+              <div className={`${campaignsMinimized ? 'hidden md:block' : 'block'}`}>
+                <CampaignsTable campaigns={metrics} />
+              </div>
+            </div>
           </>
         )}
 
@@ -698,4 +726,4 @@ export function Dashboard() {
       />
     </div>
   )
-} 
+}
