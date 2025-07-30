@@ -18,6 +18,7 @@ interface AccountFunnel {
   accountId: string
   steps: FunnelStep[]
   totalConversion: number
+  cpa: number
 }
 
 interface AccountData {
@@ -27,6 +28,7 @@ interface AccountData {
   impressions: number
   initiateCheckout: number
   purchases: number
+  valorUsado: number
 }
 
 export function ConversionFunnel() {
@@ -97,7 +99,8 @@ export function ConversionFunnel() {
           clicks: 0,
           impressions: 0,
           initiateCheckout: 0,
-          purchases: 0
+          purchases: 0,
+          valorUsado: 0
         }
       }
 
@@ -105,6 +108,7 @@ export function ConversionFunnel() {
       acc[accountId].impressions += campaign.impressions
       acc[accountId].initiateCheckout += campaign.initiateCheckout
       acc[accountId].purchases += campaign.compras
+      acc[accountId].valorUsado += campaign.valorUsado
 
       return acc
     }, {} as Record<string, AccountData>)
@@ -116,6 +120,7 @@ export function ConversionFunnel() {
     const pageViews = Math.round(clicks * 0.85) // Estimativa 85%
     const initiateCheckout = account.initiateCheckout
     const purchases = account.purchases // Usar purchases do Facebook, não vendas do Supabase
+    const cpa = purchases > 0 ? account.valorUsado / purchases : 0 // Calcular CPA médio da conta
 
     const steps: FunnelStep[] = [
       {
@@ -156,7 +161,8 @@ export function ConversionFunnel() {
       accountName: account.accountName,
       accountId: account.accountId,
       steps,
-      totalConversion: clicks > 0 ? Number(((purchases / clicks) * 100).toFixed(2)) : 0
+      totalConversion: clicks > 0 ? Number(((purchases / clicks) * 100).toFixed(2)) : 0,
+      cpa
     }
   }).filter(funnel => funnel.steps[0].value > 0) // Só mostrar contas com dados
 
@@ -214,9 +220,16 @@ export function ConversionFunnel() {
           <h4 className="text-sm lg:text-base font-semibold text-white">
             {funnel.accountName}
           </h4>
-          <p className="text-xs text-gray-400">
-            Conversão total: <span className="text-green-400 font-medium">{funnel.totalConversion}%</span>
-          </p>
+          <div className="text-xs text-gray-400 space-y-0.5">
+            <p>
+              Conversão total: <span className="text-green-400 font-medium">{funnel.totalConversion}%</span>
+            </p>
+            <p>
+              CPA médio: <span className="text-orange-400 font-medium">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(funnel.cpa)}
+              </span>
+            </p>
+          </div>
         </div>
 
         {/* Badge de performance - Compacto */}
@@ -382,32 +395,7 @@ export function ConversionFunnel() {
         )}
       </div>
 
-      {/* Resumo geral */}
-      {accountFunnels.length > 1 && (
-        <div className="mt-8 pt-6 border-t border-gray-700">
-          <h4 className="text-lg font-semibold text-white mb-4">Resumo Geral</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-700/30 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-400">
-                {accountFunnels.reduce((sum, funnel) => sum + funnel.steps[0].value, 0).toLocaleString('pt-BR')}
-              </div>
-              <div className="text-sm text-gray-400">Total de Cliques</div>
-            </div>
-            <div className="bg-gray-700/30 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-green-400">
-                {accountFunnels.reduce((sum, funnel) => sum + funnel.steps[3].value, 0).toLocaleString('pt-BR')}
-              </div>
-              <div className="text-sm text-gray-400">Total de Vendas</div>
-            </div>
-            <div className="bg-gray-700/30 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-400">
-                {(accountFunnels.reduce((sum, funnel) => sum + funnel.totalConversion, 0) / accountFunnels.length).toFixed(2)}%
-              </div>
-              <div className="text-sm text-gray-400">Conversão Média</div>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }
