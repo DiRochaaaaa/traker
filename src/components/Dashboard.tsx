@@ -8,6 +8,7 @@ import { AccountSummaryTable, AccountSummary } from './AccountSummaryTable'
 import { FilterBar } from './FilterBar'
 import { ConversionFunnel } from './ConversionFunnel'
 import { ColorConfigModal } from './ColorConfigModal'
+import { AdNameReport } from './AdNameReport'
 import { RefreshCw, ShoppingBag, Settings, Megaphone, ArrowUp, ChevronDown, ChevronUp } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -708,6 +709,9 @@ export function Dashboard() {
         </div>
 
 
+
+        {/* Ad Names Report */}
+        <AdNameReport />
 
         {/* Conversion Funnel */}
         <ConversionFunnel />
