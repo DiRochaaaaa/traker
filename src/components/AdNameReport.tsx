@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { BarChart3, RefreshCw, Filter, Calendar } from 'lucide-react'
+import { BarChart3, RefreshCw, Filter, Calendar, Package } from 'lucide-react'
 
 interface AdNameData {
   ad_name: string
@@ -21,6 +21,7 @@ interface AdNameReportResponse {
 interface FilterState {
   dateFrom: string
   dateTo: string
+  produtos: string[]
 }
 
 export function AdNameReport() {
@@ -32,18 +33,34 @@ export function AdNameReport() {
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
     dateFrom: '',
-    dateTo: ''
+    dateTo: '',
+    produtos: []
   })
+  const [availableProdutos, setAvailableProdutos] = useState<string[]>([])
+
+  // Função para buscar produtos disponíveis
+  const fetchProdutos = useCallback(async () => {
+    try {
+      const response = await fetch('/api/produtos')
+      const result = await response.json()
+      if (result.success) {
+        setAvailableProdutos(result.data)
+      }
+    } catch (err) {
+      console.error('Erro ao buscar produtos:', err)
+    }
+  }, [])
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
       
-      // Construir URL com parâmetros de filtro de data
+      // Construir URL com parâmetros de filtro
       const params = new URLSearchParams()
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom)
       if (filters.dateTo) params.append('dateTo', filters.dateTo)
+      if (filters.produtos.length > 0) params.append('produtos', filters.produtos.join(','))
       
       const url = `/api/ad-names-report${params.toString() ? '?' + params.toString() : ''}`
       const response = await fetch(url)
@@ -76,7 +93,8 @@ export function AdNameReport() {
   const resetFilters = () => {
     setFilters({
       dateFrom: '',
-      dateTo: ''
+      dateTo: '',
+      produtos: []
     })
   }
   
@@ -104,32 +122,48 @@ export function AdNameReport() {
     switch (period) {
       case 'today':
         const todayStr = getBrazilDate(today)
-        setFilters({ dateFrom: todayStr, dateTo: todayStr })
+        setFilters(prev => ({ ...prev, dateFrom: todayStr, dateTo: todayStr }))
         break
       case 'yesterday':
         const yesterdayStr = getBrazilDate(yesterday)
-        setFilters({ dateFrom: yesterdayStr, dateTo: yesterdayStr })
+        setFilters(prev => ({ ...prev, dateFrom: yesterdayStr, dateTo: yesterdayStr }))
         break
       case 'last_7_days':
         const last7Days = new Date(today)
         last7Days.setDate(today.getDate() - 6)
-        setFilters({ 
+        setFilters(prev => ({ 
+          ...prev,
           dateFrom: getBrazilDate(last7Days), 
           dateTo: getBrazilDate(today) 
-        })
+        }))
         break
       case 'this_month':
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-        setFilters({ 
+        setFilters(prev => ({ 
+          ...prev,
           dateFrom: getBrazilDate(firstDayOfMonth), 
           dateTo: getBrazilDate(today) 
-        })
+        }))
         break
       default:
         resetFilters()
     }
   }
   
+  // Função para gerenciar seleção de produtos
+  const toggleProduto = (produto: string) => {
+    setFilters(prev => ({
+      ...prev,
+      produtos: prev.produtos.includes(produto)
+        ? prev.produtos.filter(p => p !== produto)
+        : [...prev.produtos, produto]
+    }))
+  }
+
+  useEffect(() => {
+    fetchProdutos()
+  }, [fetchProdutos])
+
   useEffect(() => {
     fetchData()
   }, [fetchData])
@@ -262,7 +296,7 @@ export function AdNameReport() {
           </div>
 
           {/* Seleção Manual de Datas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Filtro de Data Inicial */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -290,6 +324,53 @@ export function AdNameReport() {
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+          </div>
+
+          {/* Filtro de Produtos */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              <Package className="h-4 w-4 inline mr-1" />
+              Produtos ({filters.produtos.length} selecionados)
+            </label>
+            <div className="bg-gray-800 border border-gray-600 rounded-md p-3 max-h-48 overflow-y-auto">
+              {availableProdutos.length === 0 ? (
+                <div className="text-gray-400 text-sm text-center py-2">
+                  Carregando produtos...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {availableProdutos.map((produto) => (
+                    <label key={produto} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-700/50 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={filters.produtos.includes(produto)}
+                        onChange={() => toggleProduto(produto)}
+                        className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-gray-300 flex-1">{produto}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            {filters.produtos.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {filters.produtos.map((produto) => (
+                  <span
+                    key={produto}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-700"
+                  >
+                    {produto}
+                    <button
+                      onClick={() => toggleProduto(produto)}
+                      className="ml-1 text-blue-400 hover:text-blue-200"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Botões de Ação dos Filtros */}

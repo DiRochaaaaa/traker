@@ -15,15 +15,16 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const dateFrom = searchParams.get('dateFrom')
   const dateTo = searchParams.get('dateTo')
+  const produtos = searchParams.get('produtos') // Novo filtro de produtos
 
   console.log('📊 [AD NAMES REPORT] Iniciando busca de relatório de ad_names...')
-  console.log('🔍 [AD NAMES REPORT] Filtros de data aplicados:', { dateFrom, dateTo })
+  console.log('🔍 [AD NAMES REPORT] Filtros aplicados:', { dateFrom, dateTo, produtos })
 
   try {
     // Construir query com filtros - incluir campo tipo para filtrar vendas principais
     let query = supabase
       .from('vendas')
-      .select('ad_name, comissao, created_at, tipo')
+      .select('ad_name, comissao, created_at, tipo, produto')
       .not('ad_name', 'is', null)
     
     // Aplicar filtros de data se fornecidos
@@ -32,6 +33,12 @@ export async function GET(request: NextRequest) {
     }
     if (dateTo) {
       query = query.lte('created_at', dateTo)
+    }
+    
+    // Aplicar filtro de produtos se fornecido
+    if (produtos) {
+      const produtosList = produtos.split(',')
+      query = query.in('produto', produtosList)
     }
     
     const { data, error } = await query.order('ad_name')
