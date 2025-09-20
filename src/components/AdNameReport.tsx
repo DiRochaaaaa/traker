@@ -51,16 +51,19 @@ export function AdNameReport() {
     }
   }, [])
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (customFilters?: FilterState) => {
     try {
       setLoading(true)
       setError(null)
       
+      // Usar filtros customizados ou filtros atuais
+      const activeFilters = customFilters || filters
+      
       // Construir URL com parâmetros de filtro
       const params = new URLSearchParams()
-      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom)
-      if (filters.dateTo) params.append('dateTo', filters.dateTo)
-      if (filters.produtos.length > 0) params.append('produtos', filters.produtos.join(','))
+      if (activeFilters.dateFrom) params.append('dateFrom', activeFilters.dateFrom)
+      if (activeFilters.dateTo) params.append('dateTo', activeFilters.dateTo)
+      if (activeFilters.produtos.length > 0) params.append('produtos', activeFilters.produtos.join(','))
       
       const url = `/api/ad-names-report${params.toString() ? '?' + params.toString() : ''}`
       const response = await fetch(url)
@@ -91,11 +94,13 @@ export function AdNameReport() {
   }, [data])
   
   const resetFilters = () => {
-    setFilters({
+    const emptyFilters = {
       dateFrom: '',
       dateTo: '',
       produtos: []
-    })
+    }
+    setFilters(emptyFilters)
+    fetchData(emptyFilters) // Aplicar filtros limpos automaticamente
   }
   
   // Função para obter data no fuso horário de Brasília
@@ -119,35 +124,41 @@ export function AdNameReport() {
     const yesterday = new Date(today)
     yesterday.setDate(today.getDate() - 1)
     
+    let newFilters: FilterState
+    
     switch (period) {
       case 'today':
         const todayStr = getBrazilDate(today)
-        setFilters(prev => ({ ...prev, dateFrom: todayStr, dateTo: todayStr }))
+        newFilters = { ...filters, dateFrom: todayStr, dateTo: todayStr }
         break
       case 'yesterday':
         const yesterdayStr = getBrazilDate(yesterday)
-        setFilters(prev => ({ ...prev, dateFrom: yesterdayStr, dateTo: yesterdayStr }))
+        newFilters = { ...filters, dateFrom: yesterdayStr, dateTo: yesterdayStr }
         break
       case 'last_7_days':
         const last7Days = new Date(today)
         last7Days.setDate(today.getDate() - 6)
-        setFilters(prev => ({ 
-          ...prev,
+        newFilters = { 
+          ...filters,
           dateFrom: getBrazilDate(last7Days), 
           dateTo: getBrazilDate(today) 
-        }))
+        }
         break
       case 'this_month':
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-        setFilters(prev => ({ 
-          ...prev,
+        newFilters = { 
+          ...filters,
           dateFrom: getBrazilDate(firstDayOfMonth), 
           dateTo: getBrazilDate(today) 
-        }))
+        }
         break
       default:
         resetFilters()
+        return
     }
+    
+    setFilters(newFilters)
+    fetchData(newFilters) // Aplicar filtros automaticamente para períodos pré-definidos
   }
   
   // Função para gerenciar seleção de produtos
@@ -164,13 +175,14 @@ export function AdNameReport() {
     fetchProdutos()
   }, [fetchProdutos])
 
+  // Carregar dados iniciais apenas uma vez
   useEffect(() => {
     fetchData()
   }, [fetchData])
   
   useEffect(() => {
     applyFilters()
-  }, [filters, data, applyFilters])
+  }, [data, applyFilters]) // Removido filters da dependência
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -210,7 +222,7 @@ export function AdNameReport() {
             <h2 className="text-xl font-semibold text-white">Relatório de Ad Names</h2>
           </div>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData()}
             className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
@@ -250,7 +262,7 @@ export function AdNameReport() {
             Filtros
           </button>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData(filters)}
             className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
@@ -382,7 +394,7 @@ export function AdNameReport() {
               Limpar Filtros
             </button>
             <button
-              onClick={fetchData}
+              onClick={() => fetchData(filters)}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Aplicar Filtros
