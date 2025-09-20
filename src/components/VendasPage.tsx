@@ -19,6 +19,7 @@ export interface Venda {
   cliente_name: string | null
   cliente_email: string | null
   source: string | null
+  ad_name: string | null
 }
 
 interface VendasStats {
@@ -404,6 +405,9 @@ export function VendasPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                         Campaign ID
                       </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Ad Name
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-gray-800 divide-y divide-gray-700">
@@ -442,6 +446,9 @@ export function VendasPage() {
                             {getCampaignIdLabel(venda.campaign_id)}
                           </span>
                         </td>
+                        <td className="px-4 py-3 text-sm text-gray-300 max-w-xs truncate">
+                          {venda.ad_name || '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -453,4 +460,4 @@ export function VendasPage() {
       </div>
     </div>
   )
-} 
+}

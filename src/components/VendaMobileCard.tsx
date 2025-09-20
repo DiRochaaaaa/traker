@@ -89,19 +89,26 @@ export function VendaMobileCard({
       </div>
 
       {/* Seção Inferior: IDs e Status */}
-      <div className="mt-3 pt-3 border-t border-gray-700/60 flex items-center justify-between text-xs text-gray-400">
-        <div className="flex items-center gap-1.5 font-mono">
-          <Hash size={12} className="text-gray-500" />
-          ID: {venda.purchase_id || 'N/A'}
+      <div className="mt-3 pt-3 border-t border-gray-700/60 space-y-2">
+        <div className="flex items-center justify-between text-xs text-gray-400">
+          <div className="flex items-center gap-1.5 font-mono">
+            <Hash size={12} className="text-gray-500" />
+            ID: {venda.purchase_id || 'N/A'}
+          </div>
+          <span
+            className={`px-2 py-0.5 font-semibold rounded-full border text-xs ${getCampaignIdStyle(
+              venda.campaign_id,
+            )}`}
+          >
+            {getCampaignIdLabel(venda.campaign_id)}
+          </span>
         </div>
-        <span
-          className={`px-2 py-0.5 font-semibold rounded-full border text-xs ${getCampaignIdStyle(
-            venda.campaign_id,
-          )}`}
-        >
-          {getCampaignIdLabel(venda.campaign_id)}
-        </span>
+        {venda.ad_name && (
+          <div className="text-xs text-gray-400">
+            <span className="text-gray-500">Ad:</span> <span className="text-gray-300">{venda.ad_name}</span>
+          </div>
+        )}
       </div>
     </div>
   )
-} 
+}
