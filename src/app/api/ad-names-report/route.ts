@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     console.log(`🎯 [AD NAMES REPORT] Vendas principais filtradas: ${vendasPrincipais.length} de ${data?.length || 0} total`)
 
     // Agrupar dados por ad_name (apenas vendas principais)
-    const adNamesReport = vendasPrincipais.reduce((acc: Record<string, { ad_name: string, vendas: number, comissao_total: number }>, venda: any) => {
+    const adNamesReport = vendasPrincipais.reduce((acc: Record<string, { ad_name: string, vendas: number, comissao_total: number }>, venda: { ad_name: string, comissao: string, created_at: string, tipo: string }) => {
       const adName = venda.ad_name
       const comissao = parseFloat(venda.comissao) || 0
 

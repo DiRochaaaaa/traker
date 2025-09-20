@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { BarChart3, TrendingUp, DollarSign, RefreshCw, Filter, Calendar } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { BarChart3, RefreshCw, Filter, Calendar } from 'lucide-react'
 
 interface AdNameData {
   ad_name: string
@@ -28,14 +28,14 @@ export function AdNameReport() {
   const [filteredData, setFilteredData] = useState<AdNameData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [totals, setTotals] = useState({ ad_names: 0, vendas: 0, comissao: 0 })
+  // const [totals, setTotals] = useState({ ad_names: 0, vendas: 0, comissao: 0 })
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
     dateFrom: '',
     dateTo: ''
   })
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -52,11 +52,11 @@ export function AdNameReport() {
       if (result.success) {
         setData(result.data)
         setFilteredData(result.data)
-        setTotals({
-          ad_names: result.total_ad_names,
-          vendas: result.total_vendas,
-          comissao: result.total_comissao
-        })
+        // setTotals({
+        //   ad_names: result.total_ad_names,
+        //   vendas: result.total_vendas,
+        //   comissao: result.total_comissao
+        // })
       } else {
         setError(result.error || 'Erro ao carregar dados')
       }
@@ -66,12 +66,12 @@ export function AdNameReport() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   // Os filtros de data são aplicados na API, então apenas mantemos os dados sincronizados
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     setFilteredData(data)
-  }
+  }, [data])
   
   const resetFilters = () => {
     setFilters({
@@ -80,6 +80,21 @@ export function AdNameReport() {
     })
   }
   
+  // Função para obter data no fuso horário de Brasília
+  const getBrazilDate = (date: Date) => {
+    // Criar data no fuso horário de Brasília (UTC-3)
+    const brazilOffset = -3 * 60 // -3 horas em minutos
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000)
+    const brazilTime = new Date(utc + (brazilOffset * 60000))
+    
+    // Retornar no formato YYYY-MM-DD
+    const year = brazilTime.getFullYear()
+    const month = String(brazilTime.getMonth() + 1).padStart(2, '0')
+    const day = String(brazilTime.getDate()).padStart(2, '0')
+    
+    return `${year}-${month}-${day}`
+  }
+
   // Função para definir período pré-definido
   const setDatePeriod = (period: string) => {
     const today = new Date()
@@ -88,26 +103,26 @@ export function AdNameReport() {
     
     switch (period) {
       case 'today':
-        const todayStr = today.toISOString().split('T')[0]
+        const todayStr = getBrazilDate(today)
         setFilters({ dateFrom: todayStr, dateTo: todayStr })
         break
       case 'yesterday':
-        const yesterdayStr = yesterday.toISOString().split('T')[0]
+        const yesterdayStr = getBrazilDate(yesterday)
         setFilters({ dateFrom: yesterdayStr, dateTo: yesterdayStr })
         break
       case 'last_7_days':
         const last7Days = new Date(today)
         last7Days.setDate(today.getDate() - 6)
         setFilters({ 
-          dateFrom: last7Days.toISOString().split('T')[0], 
-          dateTo: today.toISOString().split('T')[0] 
+          dateFrom: getBrazilDate(last7Days), 
+          dateTo: getBrazilDate(today) 
         })
         break
       case 'this_month':
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
         setFilters({ 
-          dateFrom: firstDayOfMonth.toISOString().split('T')[0], 
-          dateTo: today.toISOString().split('T')[0] 
+          dateFrom: getBrazilDate(firstDayOfMonth), 
+          dateTo: getBrazilDate(today) 
         })
         break
       default:
@@ -117,11 +132,11 @@ export function AdNameReport() {
   
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [fetchData])
   
   useEffect(() => {
     applyFilters()
-  }, [filters, data])
+  }, [filters, data, applyFilters])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -315,7 +330,7 @@ export function AdNameReport() {
                 </tr>
               </thead>
               <tbody className="bg-gray-800 divide-y divide-gray-700">
-                {filteredData.map((item, index) => (
+                {filteredData.map((item) => (
                   <tr key={item.ad_name} className="hover:bg-gray-700/50 transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="font-medium text-white truncate max-w-xs" title={item.ad_name}>
@@ -341,7 +356,7 @@ export function AdNameReport() {
 
           {/* Mobile Cards */}
           <div className="lg:hidden space-y-3">
-            {filteredData.map((item, index) => (
+            {filteredData.map((item) => (
               <div key={item.ad_name} className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
