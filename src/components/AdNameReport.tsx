@@ -29,7 +29,6 @@ export function AdNameReport() {
   const [filteredData, setFilteredData] = useState<AdNameData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  // const [totals, setTotals] = useState({ ad_names: 0, vendas: 0, comissao: 0 })
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
     dateFrom: '',
@@ -37,8 +36,8 @@ export function AdNameReport() {
     produtos: []
   })
   const [availableProdutos, setAvailableProdutos] = useState<string[]>([])
+  const [showAll, setShowAll] = useState(false);
 
-  // Função para buscar produtos disponíveis
   const fetchProdutos = useCallback(async () => {
     try {
       const response = await fetch('/api/produtos')
@@ -56,10 +55,8 @@ export function AdNameReport() {
       setLoading(true)
       setError(null)
       
-      // Usar filtros customizados ou filtros atuais
       const activeFilters = customFilters || filters
       
-      // Construir URL com parâmetros de filtro
       const params = new URLSearchParams()
       if (activeFilters.dateFrom) params.append('dateFrom', activeFilters.dateFrom)
       if (activeFilters.dateTo) params.append('dateTo', activeFilters.dateTo)
@@ -72,11 +69,6 @@ export function AdNameReport() {
       if (result.success) {
         setData(result.data)
         setFilteredData(result.data)
-        // setTotals({
-        //   ad_names: result.total_ad_names,
-        //   vendas: result.total_vendas,
-        //   comissao: result.total_comissao
-        // })
       } else {
         setError(result.error || 'Erro ao carregar dados')
       }
@@ -86,9 +78,8 @@ export function AdNameReport() {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [])
 
-  // Os filtros de data são aplicados na API, então apenas mantemos os dados sincronizados
   const applyFilters = useCallback(() => {
     setFilteredData(data)
   }, [data])
@@ -100,17 +91,14 @@ export function AdNameReport() {
       produtos: []
     }
     setFilters(emptyFilters)
-    fetchData(emptyFilters) // Aplicar filtros limpos automaticamente
+    fetchData(emptyFilters)
   }
   
-  // Função para obter data no fuso horário de Brasília
   const getBrazilDate = (date: Date) => {
-    // Criar data no fuso horário de Brasília (UTC-3)
-    const brazilOffset = -3 * 60 // -3 horas em minutos
+    const brazilOffset = -3 * 60
     const utc = date.getTime() + (date.getTimezoneOffset() * 60000)
     const brazilTime = new Date(utc + (brazilOffset * 60000))
     
-    // Retornar no formato YYYY-MM-DD
     const year = brazilTime.getFullYear()
     const month = String(brazilTime.getMonth() + 1).padStart(2, '0')
     const day = String(brazilTime.getDate()).padStart(2, '0')
@@ -118,7 +106,6 @@ export function AdNameReport() {
     return `${year}-${month}-${day}`
   }
 
-  // Função para definir período pré-definido
   const setDatePeriod = (period: string) => {
     const today = new Date()
     const yesterday = new Date(today)
@@ -158,10 +145,9 @@ export function AdNameReport() {
     }
     
     setFilters(newFilters)
-    fetchData(newFilters) // Aplicar filtros automaticamente para períodos pré-definidos
+    fetchData(newFilters)
   }
   
-  // Função para gerenciar seleção de produtos
   const toggleProduto = (produto: string) => {
     setFilters(prev => ({
       ...prev,
@@ -175,14 +161,13 @@ export function AdNameReport() {
     fetchProdutos()
   }, [fetchProdutos])
 
-  // Carregar dados iniciais apenas uma vez
   useEffect(() => {
     fetchData()
   }, [fetchData])
   
   useEffect(() => {
     applyFilters()
-  }, [data, applyFilters]) // Removido filters da dependência
+  }, [data, applyFilters])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -190,6 +175,8 @@ export function AdNameReport() {
       currency: 'BRL'
     }).format(value)
   }
+
+  const displayedData = showAll ? filteredData : filteredData.slice(0, 5);
 
   if (loading) {
     return (
@@ -423,7 +410,7 @@ export function AdNameReport() {
                 </tr>
               </thead>
               <tbody className="bg-gray-800 divide-y divide-gray-700">
-                {filteredData.map((item) => (
+                {displayedData.map((item) => (
                   <tr key={item.ad_name} className="hover:bg-gray-700/50 transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="font-medium text-white truncate max-w-xs" title={item.ad_name}>
@@ -445,11 +432,21 @@ export function AdNameReport() {
                 ))}
               </tbody>
             </table>
+            {filteredData.length > 5 && (
+                <div className="hidden lg:flex justify-center mt-4">
+                    <button
+                    onClick={() => setShowAll(!showAll)}
+                    className="px-4 py-2 text-sm text-blue-400 hover:text-blue-300"
+                    >
+                    {showAll ? 'Ver menos' : 'Ver mais'}
+                    </button>
+                </div>
+            )}
           </div>
 
           {/* Mobile Cards */}
           <div className="lg:hidden space-y-3">
-            {filteredData.map((item) => (
+            {displayedData.map((item) => (
               <div key={item.ad_name} className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -476,6 +473,16 @@ export function AdNameReport() {
                 </div>
               </div>
             ))}
+            {filteredData.length > 5 && (
+                <div className="lg:hidden flex justify-center mt-4">
+                    <button
+                    onClick={() => setShowAll(!showAll)}
+                    className="px-4 py-2 text-sm text-blue-400 hover:text-blue-300"
+                    >
+                    {showAll ? 'Ver menos' : 'Ver mais'}
+                    </button>
+                </div>
+            )}
           </div>
         </>
       )}
